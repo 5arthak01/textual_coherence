@@ -89,8 +89,8 @@ def run_bigram_coherence(args):
     task = ["insertion"]
     # os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
 
-    RESULTS_PATH = "%s/results_%s" % config.ROOT_PATH, task[0]
-    os.makedirs(config.RESULTS_PATH, exist_ok=True)
+    RESULTS_PATH = f"{config.ROOT_PATH}/results_{task[0]}"
+    os.makedirs(RESULTS_PATH, exist_ok=True)
     all_results = []
 
     for i, x in enumerate(
