@@ -18,7 +18,7 @@ from json import dump
 
 
 def print_current_time():
-    print("\n\nThe time is: {}".format(datetime.now().isoformat()))
+    print("\n\nThe time is: {}".format(datetime.now().isoformat()), flush=True)
 
 
 def run_bigram_coherence(args):
@@ -86,8 +86,10 @@ def run_bigram_coherence(args):
     margin = list(arange(4, 6.1, 1))
     l2_reg_lambda = list(arange(0, 0.11, 0.1))
     dpout_model = list(arange(0, 0.11, 0.05))
-    task = ["discrimination", "insertion"]
-    os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
+    task = ["insertion"]
+    # os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
+
+    RESULTS_PATH = "%s/results_%s" % config.ROOT_PATH, task[0]
     os.makedirs(config.RESULTS_PATH, exist_ok=True)
     all_results = []
 
@@ -116,28 +118,31 @@ def run_bigram_coherence(args):
         best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
 
         # Save model
-        model_path = os.path.join(config.CHECKPOINT_PATH, "%06d-%.4f" % (i, valid_acc))
+        model_path = os.path.join(RESULTS_PATH, "%06d-%.4f" % (i, valid_acc))
         torch.save(model, model_path + ".pth")
         model.load_best_state()
 
         print_current_time()
-        print("Results for discrimination:")
+        print("Results for discrimination:", flush=True)
         dis_acc = model.evaluate_dis(test_dataloader, test_df)
         print("Test Acc:", dis_acc)
 
         print_current_time()
-        print("Results for insertion:")
+        print("Results for insertion:", flush=True)
         ins_acc = model.evaluate_ins(test_dataloader, test_df)
-        print("Test Acc:", ins_acc)
+        print("Test Acc:", ins_acc, flush=True)
 
         # Save results
-        results_path = os.path.join(config.RESULTS_PATH, "%06d-%.4f" % (i, valid_acc))
+        results_path = os.path.join(RESULTS_PATH, "%06d-%.4f" % (i, valid_acc))
         results = {"kwargs": kwargs, "discrimination": dis_acc, "insertion": ins_acc}
         with open(results_path + ".json", "w") as f:
             dump(results, f, indent=4)
         all_results.append(results)
 
-    with open(config.RESULTS_PATH + "all_results" + ".json", "w") as f:
+        if i == 0:
+            break
+
+    with open(RESULTS_PATH + "all_results" + ".json", "w") as f:
         dump(all_results, f, indent=4)
 
 

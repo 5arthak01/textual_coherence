@@ -253,7 +253,7 @@ class BigramCoherence:
             print("neg score stats")
             print(pd.DataFrame(all_neg_scores).describe())
 
-        return acc, accs
+        return [acc, accs.tolist()]
 
     def evaluate_ins(self, test, df):
         correct_pred = [0, 0, 0]
@@ -302,7 +302,7 @@ class BigramCoherence:
         self.discriminator.train(True)
         accs = np.true_divide(correct_pred, total_samples)
         acc = np.true_divide(np.sum(correct_pred), np.sum(total_samples))
-        return acc, accs
+        return [acc, accs.tolist()]
 
     def save(self, path):
         torch.save(self.best_discriminator, path + ".pt")
