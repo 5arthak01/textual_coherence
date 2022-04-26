@@ -12,6 +12,9 @@ import argparse
 from add_args import add_bigram_args
 import torch
 from datetime import datetime
+from numpy import arange
+from itertools import product
+from json import dump
 
 
 def print_current_time():
@@ -58,7 +61,6 @@ def run_bigram_coherence(args):
 
     # logging.info("Training BigramCoherence model...")
     # print("Training BigramCoherence model...")
-    print_current_time()
     kwargs = {
         "embed_dim": embed_dim,
         "sent_encoder": sent_embedding,
@@ -78,42 +80,65 @@ def run_bigram_coherence(args):
         },
     }
 
-    model = BigramCoherence(**kwargs)
-    model.init()
-    best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
-    if args.save:
-        model_path = os.path.join(
-            config.CHECKPOINT_PATH, "%s-%.4f" % (args.data_name, valid_acc)
+    input_dropout = list(arange(0.5, 0.71, 0.1))
+    hidden_layers = list(arange(1, 3))
+    hidden_dropout = list(arange(0.2, 0.41, 0.1))
+    margin = list(arange(4, 6.1, 1))
+    l2_reg_lambda = list(arange(0, 0.11, 0.1))
+    dpout_model = list(arange(0, 0.11, 0.05))
+    task = ["discrimination", "insertion"]
+    os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
+    os.makedirs(config.RESULTS_PATH, exist_ok=True)
+    all_results = []
+
+    for i, x in enumerate(
+        product(
+            input_dropout,
+            hidden_layers,
+            hidden_dropout,
+            margin,
+            l2_reg_lambda,
+            dpout_model,
+            task,
         )
-        # model.save(model_path)
+    ):
+        kwargs["hparams"]["input_dropout"] = x[0]
+        kwargs["hparams"]["hidden_layers"] = x[1]
+        kwargs["hparams"]["hidden_dropout"] = x[2]
+        kwargs["hparams"]["margin"] = x[3]
+        kwargs["hparams"]["l2_reg_lambda"] = x[4]
+        kwargs["hparams"]["dpout_model"] = x[5]
+        kwargs["hparams"]["task"] = x[6]
+
+        print_current_time()
+        model = BigramCoherence(**kwargs)
+        model.init()
+        best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
+
+        # Save model
+        model_path = os.path.join(config.CHECKPOINT_PATH, "%06d-%.4f" % (i, valid_acc))
         torch.save(model, model_path + ".pth")
-    model.load_best_state()
+        model.load_best_state()
 
-    # dataset = DataSet(config.DATASET["wsj_bigram"])
-    # test_dataset = dataset.load_test()
-    # test_dataloader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
-    # test_df = dataset.load_test_perm()
-    # if args.sent_encoder == "infersent":
-    #    model.sent_encoder = get_infersent("wsj_bigram", if_sample=args.test)
-    # elif args.sent_encoder == "average_glove":
-    #    model.sent_encoder = get_average_glove("wsj_bigram", if_sample=args.test)
-    # else:
-    #    model.sent_encoder = get_lm_hidden("wsj_bigram", "lm_" + args.data_name, corpus)
-    print_current_time()
-    print("Results for discrimination:")
-    # logging.info("Results for discrimination:")
-    dis_acc = model.evaluate_dis(test_dataloader, test_df)
-    print("Test Acc:", dis_acc)
-    # logging.info("Disc Accuracy: {}".format(dis_acc[0]))
+        print_current_time()
+        print("Results for discrimination:")
+        dis_acc = model.evaluate_dis(test_dataloader, test_df)
+        print("Test Acc:", dis_acc)
 
-    print_current_time()
-    print("Results for insertion:")
-    # logging.info("Results for insertion:")
-    ins_acc = model.evaluate_ins(test_dataloader, test_df)
-    print("Test Acc:", ins_acc)
-    # logging.info("Insert Accuracy: {}".format(ins_acc[0]))
+        print_current_time()
+        print("Results for insertion:")
+        ins_acc = model.evaluate_ins(test_dataloader, test_df)
+        print("Test Acc:", ins_acc)
 
-    return dis_acc, ins_acc
+        # Save results
+        results_path = os.path.join(config.RESULTS_PATH, "%06d-%.4f" % (i, valid_acc))
+        results = {"kwargs": kwargs, "discrimination": dis_acc, "insertion": ins_acc}
+        with open(results_path + ".json", "w") as f:
+            dump(results, f, indent=4)
+        all_results.append(results)
+
+    with open(config.RESULTS_PATH + "all_results" + ".json", "w") as f:
+        dump(all_results, f, indent=4)
 
 
 if __name__ == "__main__":

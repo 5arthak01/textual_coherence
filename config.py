@@ -5,6 +5,7 @@ ROOT_PATH = "."
 DATA_PATH = "%s/data" % ROOT_PATH
 LOG_PATH = "%s/log" % ROOT_PATH
 CHECKPOINT_PATH = "%s/checkpoint" % ROOT_PATH
+RESULTS_PATH = "%s/results" % ROOT_PATH
 
 # ------------------- DATA -------------------
 
@@ -29,8 +30,15 @@ DATASET["wsj_bigram"] = {
 
 WIKI_DATA_PATH = DATA_PATH
 SAMPLE_WIKI_DATA_PATH = DATA_PATH
-WIKI_IN_DOMAIN = ["Artist", "Athlete", "Politician", "Writer", "MilitaryPerson",
-                  "OfficeHolder", "Scientist"]
+WIKI_IN_DOMAIN = [
+    "Artist",
+    "Athlete",
+    "Politician",
+    "Writer",
+    "MilitaryPerson",
+    "OfficeHolder",
+    "Scientist",
+]
 WIKI_OUT_DOMAIN = ["Plant", "CelestialBody", "EducationalInstitution"]
 
 WIKI_EASY_DATA_PATH = "%s/parsed_random" % DATA_PATH
@@ -48,7 +56,7 @@ for i in range(7):
         "valid_perm": "%s/wiki_%s_valid_perm.tsv" % (DATA_PATH, category.lower()),
         "test_perm": "%s/wiki_%s_test_perm.tsv" % (DATA_PATH, category.lower()),
         "kwargs": {
-            "train_list": WIKI_IN_DOMAIN[:i] + WIKI_IN_DOMAIN[i + 1:],
+            "train_list": WIKI_IN_DOMAIN[:i] + WIKI_IN_DOMAIN[i + 1 :],
             "test_list": [category],
         },
     }

@@ -24,6 +24,7 @@ class MarginRankingLoss(nn.Module):
             scores = weights * scores
         return scores.mean()
 
+
 class BigramCoherence:
     def __init__(self, embed_dim, sent_encoder, hparams):
         self.embed_dim = embed_dim
@@ -37,20 +38,18 @@ class BigramCoherence:
 
         self.use_cuda = torch.cuda.is_available()
         self.use_pretrained = isinstance(self.sent_encoder, dict)
-        self.discriminator = MLP_Discriminator(
-            embed_dim, hparams, self.use_cuda)
+        self.discriminator = MLP_Discriminator(embed_dim, hparams, self.use_cuda)
         model_parameters = list(self.discriminator.parameters())
         if not self.use_pretrained:
             model_parameters += list(self.sent_encoder.parameters())
-        self.optimizer = optim.Adam(model_parameters,
-                                    lr=lr, weight_decay=l2_reg_lambda)
+        self.optimizer = optim.Adam(model_parameters, lr=lr, weight_decay=l2_reg_lambda)
 
-        self.loss_name = hparams['loss']
-        if hparams['loss'] == 'margin':
+        self.loss_name = hparams["loss"]
+        if hparams["loss"] == "margin":
             self.loss_fn = MarginRankingLoss(margin)
-        elif hparams['loss'] == 'log':
+        elif hparams["loss"] == "log":
             self.loss_fn = nn.BCEWithLogitsLoss()
-        elif hparams['loss'] == 'margin+log':
+        elif hparams["loss"] == "margin+log":
             self.loss_fn = [MarginRankingLoss(margin), nn.BCEWithLogitsLoss()]
         else:
             raise NotImplementedError()
@@ -80,7 +79,8 @@ class BigramCoherence:
             sentences = self._variable(sentences)
             return sentences
         sentences, lengths, idx_sort = self.sent_encoder.prepare_samples(
-            sentences, -1, 40, False, False)
+            sentences, -1, 40, False, False
+        )
         with torch.autograd.no_grad():
             batch = Variable(self.sent_encoder.get_batch(sentences))
         if self.use_cuda:
@@ -102,14 +102,14 @@ class BigramCoherence:
                 neg_sent2 = []
                 slens = []
                 for s in sentences:
-                    s1, ps2, ns2, slen = s.split('<BREAK>')
+                    s1, ps2, ns2, slen = s.split("<BREAK>")
                     sent1.append(s1)
                     pos_sent2.append(ps2)
                     neg_sent2.append(ns2)
                     slens.append(int(slen))
                 sent1 = self.encode(sent1)
                 slens = np.array(slens, dtype=np.float32)
-                weights = 1. / slens / (slens - 1)
+                weights = 1.0 / slens / (slens - 1)
                 weights /= np.mean(weights)
                 weights = self._variable(weights)
 
@@ -119,40 +119,40 @@ class BigramCoherence:
                 neg_sent2 = self.encode(neg_sent2)
                 neg_scores = self.discriminator(sent1, neg_sent2)
 
-                if self.loss_name == 'margin':
+                if self.loss_name == "margin":
                     loss = self.loss_fn(pos_scores, neg_scores)
 
-                elif self.loss_name == 'log':
-                    loss = self.loss_fn(-pos_scores,
-                                        torch.ones_like(pos_scores))
-                    loss += self.loss_fn(-neg_scores,
-                                         torch.zeros_like(neg_scores))
-                elif self.loss_name == 'margin+log':
+                elif self.loss_name == "log":
+                    loss = self.loss_fn(-pos_scores, torch.ones_like(pos_scores))
+                    loss += self.loss_fn(-neg_scores, torch.zeros_like(neg_scores))
+                elif self.loss_name == "margin+log":
                     loss = self.loss_fn[0](pos_scores, neg_scores)
-                    loss += .1 * \
-                        self.loss_fn[1](-pos_scores,
-                                        torch.ones_like(pos_scores))
-                    loss += .1 * \
-                        self.loss_fn[1](-neg_scores,
-                                        torch.zeros_like(neg_scores))
+                    loss += 0.1 * self.loss_fn[1](
+                        -pos_scores, torch.ones_like(pos_scores)
+                    )
+                    loss += 0.1 * self.loss_fn[1](
+                        -neg_scores, torch.zeros_like(neg_scores)
+                    )
                 else:
                     raise NotImplementedError()
 
-                if step % 100 == 0:
-                    time_str = datetime.now().isoformat()
-                    print("{}: step {}, loss {:g}".format(
-                        time_str, step, loss.item()))
+                # if step % 100 == 0:
+                #     time_str = datetime.now().isoformat()
+                #     print("{}: step {}, loss {:g}".format(time_str, step, loss.item()))
 
                 loss.backward()
                 self.optimizer.step()
 
             if valid is not None:
-                print("\nValidation:")
-                print("previous best epoch {}, acc {:g}".format(
-                    best_valid_epoch, best_valid_acc))
+                # print("\nValidation:")
+                # print(
+                #     "previous best epoch {}, acc {:g}".format(
+                #         best_valid_epoch, best_valid_acc
+                #     )
+                # )
                 acc, _ = self.evaluate(valid, df, self.task)
-                print("epoch {} acc {:g}".format(epoch, acc))
-                print("")
+                # print("epoch {} acc {:g}".format(epoch, acc))
+                # print("")
                 if acc > best_valid_acc:
                     best_valid_acc = acc
                     best_valid_epoch = epoch
@@ -193,10 +193,8 @@ class BigramCoherence:
             sentences = df.loc[article[0], "sentences"].split("<PUNC>")
             sent_num = len(sentences)
             sentences = ["<SOA>"] + sentences + ["<EOA>"]
-            neg_sentences_list = df.loc[article[0],
-                                        "neg_list"].split("<BREAK>")
-            neg_sentences_list = [s.split("<PUNC>")
-                                  for s in neg_sentences_list]
+            neg_sentences_list = df.loc[article[0], "neg_list"].split("<BREAK>")
+            neg_sentences_list = [s.split("<PUNC>") for s in neg_sentences_list]
 
             pos_sent1 = sentences[:-1]
             pos_sent1 = self.encode(pos_sent1)
@@ -222,8 +220,7 @@ class BigramCoherence:
                 mean_neg_scores.append(mean_neg_score)
 
                 if debug:
-                    all_neg_scores.append(
-                        neg_scores.data.cpu().numpy().squeeze())
+                    all_neg_scores.append(neg_scores.data.cpu().numpy().squeeze())
 
             for mean_neg_score in mean_neg_scores:
                 if mean_pos_score > mean_neg_score:
@@ -238,8 +235,8 @@ class BigramCoherence:
                     if (sent_num > lower_bound) and (sent_num <= upper_bound):
                         total_samples[i] += 1
 
-            print(" ".join(sentences), mean_pos_score)
-            print(" ".join(neg_sentences), mean_neg_score)
+            # print(" ".join(sentences), mean_pos_score)
+            # print(" ".join(neg_sentences), mean_neg_score)
         self.discriminator.train(True)
         accs = np.true_divide(correct_pred, total_samples)
         acc = np.true_divide(np.sum(correct_pred), np.sum(total_samples))
@@ -250,10 +247,10 @@ class BigramCoherence:
 
             import pandas as pd
 
-            print('pos score stats')
+            print("pos score stats")
             print(pd.DataFrame(all_pos_scores).describe())
 
-            print('neg score stats')
+            print("neg score stats")
             print(pd.DataFrame(all_neg_scores).describe())
 
         return acc, accs
@@ -276,12 +273,12 @@ class BigramCoherence:
 
             cnt = 0.0
             for i in range(1, sent_num + 1):
-                tmp = sentences[:i] + sentences[i + 1:]
+                tmp = sentences[:i] + sentences[i + 1 :]
                 flag = True
                 for j in range(1, sent_num + 1):
                     if j == i:
                         continue
-                    neg_sentences = tmp[:j] + sentences[i:i + 1] + tmp[j:]
+                    neg_sentences = tmp[:j] + sentences[i : i + 1] + tmp[j:]
                     neg_sent1 = neg_sentences[:-1]
                     neg_sent1 = self.encode(neg_sent1)
                     neg_sent2 = neg_sentences[1:]
