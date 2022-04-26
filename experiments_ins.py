@@ -139,7 +139,11 @@ def run_bigram_coherence(args):
 
         # Save results
         results_path = os.path.join(RESULTS_SAVE_PATH, "%04d-%.4f" % (i, valid_acc))
-        results = {"kwargs": kwargs, "discrimination": dis_acc, "insertion": ins_acc}
+        results = {
+            "hparams": kwargs["hparams"],
+            "discrimination": dis_acc,
+            "insertion": ins_acc,
+        }
         with open(results_path + ".json", "w") as f:
             dump(results, f, indent=4)
         all_results.append(results)
