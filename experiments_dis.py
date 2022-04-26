@@ -1,3 +1,4 @@
+from unittest import result
 from models.coherence_models import BigramCoherence
 from preprocess import get_infersent, get_average_glove, save_eval_perm, get_lm_hidden
 from preprocess import get_s2s_hidden
@@ -14,7 +15,9 @@ import torch
 from datetime import datetime
 from numpy import arange
 from itertools import product
+
 from json import dump
+import _pickle as cPickle
 
 
 def print_current_time():
@@ -80,12 +83,12 @@ def run_bigram_coherence(args):
         },
     }
 
-    input_dropout = list(arange(0.5, 0.71, 0.1))
-    hidden_layers = list(arange(1, 3))
-    hidden_dropout = list(arange(0.2, 0.41, 0.1))
-    margin = list(arange(4, 6.1, 1))
-    l2_reg_lambda = list(arange(0, 0.11, 0.1))
-    dpout_model = list(arange(0, 0.11, 0.05))
+    input_dropout = arange(0.5, 0.71, 0.1).tolist()
+    hidden_layers = arange(1, 3).tolist()
+    hidden_dropout = arange(0.2, 0.41, 0.1).tolist()
+    margin = arange(4, 6.1, 1).tolist()
+    l2_reg_lambda = arange(0, 0.11, 0.1).tolist()
+    dpout_model = arange(0, 0.11, 0.05).tolist()
     task = ["discrimination"]
     # os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
 
@@ -144,11 +147,15 @@ def run_bigram_coherence(args):
             "discrimination": dis_acc,
             "insertion": ins_acc,
         }
-        with open(results_path + ".json", "w") as f:
+
+        with open(results_path + ".pkl", "w") as f:
+            # cPickle.dump(results, f)
             dump(results, f, indent=4)
+
         all_results.append(results)
 
-    with open(RESULTS_SAVE_PATH + "all_results" + ".json", "w") as f:
+    with open(RESULTS_SAVE_PATH + "all_results" + ".pkl", "w") as f:
+        # cPickle.dump(all_results, f)
         dump(all_results, f, indent=4)
 
 
