@@ -89,8 +89,11 @@ def run_bigram_coherence(args):
     task = ["discrimination"]
     # os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
 
-    RESULTS_PATH = f"{config.ROOT_PATH}/results_{task[0]}"
-    os.makedirs(RESULTS_PATH, exist_ok=True)
+    RESULTS_DIR = f"{config.ROOT_PATH}/results_{task[0]}"
+    MODEL_SAVE_PATH = RESULTS_DIR + "/models"
+    RESULTS_SAVE_PATH = RESULTS_DIR
+    os.makedirs(RESULTS_SAVE_PATH, exist_ok=True)
+    os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
     all_results = []
 
     for i, x in enumerate(
@@ -104,6 +107,8 @@ def run_bigram_coherence(args):
             task,
         )
     ):
+        print(f"Experiment {i:04d}")
+
         kwargs["hparams"]["input_dropout"] = x[0]
         kwargs["hparams"]["hidden_layers"] = x[1]
         kwargs["hparams"]["hidden_dropout"] = x[2]
@@ -117,10 +122,10 @@ def run_bigram_coherence(args):
         model.init()
         best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
 
-        # Save model
-        model_path = os.path.join(RESULTS_PATH, "%06d-%.4f" % (i, valid_acc))
-        torch.save(model, model_path + ".pth")
-        model.load_best_state()
+        # # Save model
+        # model_path = os.path.join(MODEL_SAVE_PATH, "%04d-%.4f" % (i, valid_acc))
+        # torch.save(model, model_path + ".pth")
+        # model.load_best_state()
 
         print_current_time()
         print("Results for discrimination:")
@@ -133,13 +138,13 @@ def run_bigram_coherence(args):
         print("Test Acc:", ins_acc)
 
         # Save results
-        results_path = os.path.join(RESULTS_PATH, "%06d-%.4f" % (i, valid_acc))
+        results_path = os.path.join(RESULTS_SAVE_PATH, "%04d-%.4f" % (i, valid_acc))
         results = {"kwargs": kwargs, "discrimination": dis_acc, "insertion": ins_acc}
         with open(results_path + ".json", "w") as f:
             dump(results, f, indent=4)
         all_results.append(results)
 
-    with open(RESULTS_PATH + "all_results" + ".json", "w") as f:
+    with open(RESULTS_SAVE_PATH + "all_results" + ".json", "w") as f:
         dump(all_results, f, indent=4)
 
 
