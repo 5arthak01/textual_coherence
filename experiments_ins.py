@@ -18,7 +18,7 @@ from json import dump
 
 
 def print_current_time():
-    print("\n\nThe time is: {}".format(datetime.now().isoformat()), flush=True)
+    print("\n\nThe time is: {}".format(datetime.now().isoformat()))
 
 
 def run_bigram_coherence(args):
@@ -123,14 +123,14 @@ def run_bigram_coherence(args):
         model.load_best_state()
 
         print_current_time()
-        print("Results for discrimination:", flush=True)
+        print("Results for discrimination:")
         dis_acc = model.evaluate_dis(test_dataloader, test_df)
         print("Test Acc:", dis_acc)
 
         print_current_time()
-        print("Results for insertion:", flush=True)
+        print("Results for insertion:")
         ins_acc = model.evaluate_ins(test_dataloader, test_df)
-        print("Test Acc:", ins_acc, flush=True)
+        print("Test Acc:", ins_acc)
 
         # Save results
         results_path = os.path.join(RESULTS_PATH, "%06d-%.4f" % (i, valid_acc))
@@ -138,9 +138,6 @@ def run_bigram_coherence(args):
         with open(results_path + ".json", "w") as f:
             dump(results, f, indent=4)
         all_results.append(results)
-
-        if i == 0:
-            break
 
     with open(RESULTS_PATH + "all_results" + ".json", "w") as f:
         dump(all_results, f, indent=4)

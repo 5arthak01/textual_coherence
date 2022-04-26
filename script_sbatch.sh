@@ -4,9 +4,10 @@
 #SBATCH --time=5-00:00:00
 #SBATCH --output=logs_experiments.txt
 #SBATCH --mail-type=END
+#SBATCH -J experiments_discrimination
 
 cd
 source .bashrc
 cd ~/cross_domain_coherence
 conda activate pytorch
-python experiments.py
+python experiments_dis.py
