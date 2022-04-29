@@ -147,13 +147,13 @@ def run_bigram_coherence(args):
             "insertion": ins_acc,
         }
 
-        with open(results_path + ".pkl", "w") as f:
+        with open(results_path + ".json", "w") as f:
             # cPickle.dump(results, f)
             dump(results, f, indent=4)
 
         all_results.append(results)
 
-    with open(RESULTS_SAVE_PATH + "all_results" + ".pkl", "w") as f:
+    with open(os.path.join(RESULTS_SAVE_PATH, "all_results.json"), "w") as f:
         # cPickle.dump(all_results, f)
         dump(all_results, f, indent=4)
 
