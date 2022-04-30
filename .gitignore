@@ -26,9 +26,9 @@ pytorch_coherence/InferSent/results/
 **/core
 **/reranking/
 **/runs/
-**/results/
+# **/results/
 *.out
-data/*
+**/data/
 checkpoint/*
 
 
