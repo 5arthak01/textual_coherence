@@ -93,7 +93,9 @@ def run_bigram_coherence(args):
     }
     # os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
 
-    RESULTS_DIR = f"{config.ROOT_PATH}/results_sigmoid"
+    scorer = "tanh"
+
+    RESULTS_DIR = f"{config.ROOT_PATH}/results_" + scorer
     MODEL_SAVE_PATH = RESULTS_DIR + "/models"
     RESULTS_SAVE_PATH = RESULTS_DIR
     os.makedirs(RESULTS_SAVE_PATH, exist_ok=True)
@@ -101,13 +103,13 @@ def run_bigram_coherence(args):
 
     # print_current_time()
     if PRETRAINED_MODEL:
-        model = torch.load("data/sigmoid_model.pt")
+        model = torch.load(f"data/{scorer}_model.pt")
         model.load_best_state()
     else:
         model = BigramCoherence(**kwargs)
         model.init()
         best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
-        torch.save(model, "data/sigmoid_model.pt")
+        torch.save(model, f"data/{scorer}_model.pt")
         model.load_best_state()
 
     print_current_time()
@@ -121,7 +123,7 @@ def run_bigram_coherence(args):
     print("Test Acc:", ins_acc)
 
     # Save results
-    results_path = os.path.join(RESULTS_SAVE_PATH, "sigmoid-%.4f" % (valid_acc))
+    results_path = os.path.join(RESULTS_SAVE_PATH, f"{scorer}-%.4f" % (valid_acc))
     results = {
         "hparams": kwargs["hparams"],
         "discrimination": dis_acc,

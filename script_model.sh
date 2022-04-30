@@ -10,5 +10,5 @@ cd
 source .bashrc
 cd ~/cross_domain_coherence
 conda activate pytorch
-python sigmoid.py
+python models_experi.py
 

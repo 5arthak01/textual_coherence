@@ -32,7 +32,7 @@ def compute_loss(logit, target, length):
 
 
 class MLP(nn.Module):
-    def __init__(self, input_dims, n_hiddens, n_class, dropout, use_bn):
+    def __init__(self, input_dims, n_hiddens, n_class, dropout, use_bn, scorer=None):
         super(MLP, self).__init__()
         assert isinstance(input_dims, int), "Invalid type for input_dims!"
         self.input_dims = input_dims
@@ -53,7 +53,10 @@ class MLP(nn.Module):
                 layers["bn{}".format(l_i)] = nn.BatchNorm1d(n_hidden)
             current_dims = n_hidden
         layers["out"] = nn.Linear(current_dims, n_class)
-        layers["sigmoid"] = nn.Sigmoid()
+        if scorer == "sigmoid":
+            layers["sigmoid"] = nn.Sigmoid()
+        elif scorer == "tanh":
+            layers["tanh"] = nn.Tanh()
 
         self.model = nn.Sequential(layers)
 
@@ -72,6 +75,7 @@ class MLP_Discriminator(nn.Module):
         self.use_bn = hparams["use_bn"]
         self.bidirectional = hparams["bidirectional"]
         self.use_cuda = use_cuda
+        self.scorer = hparams["scorer"]
 
         self.mlp = MLP(
             embed_dim * 5,
@@ -79,6 +83,7 @@ class MLP_Discriminator(nn.Module):
             1,
             self.hidden_dropout,
             self.use_bn,
+            self.scorer,
         )
         self.dropout = nn.Dropout(self.input_dropout)
         if self.bidirectional:
@@ -88,6 +93,7 @@ class MLP_Discriminator(nn.Module):
                 1,
                 self.hidden_dropout,
                 self.use_bn,
+                self.scorer,
             )
             self.backward_dropout = nn.Dropout(self.input_dropout)
 
