@@ -75,7 +75,10 @@ class MLP_Discriminator(nn.Module):
         self.use_bn = hparams["use_bn"]
         self.bidirectional = hparams["bidirectional"]
         self.use_cuda = use_cuda
-        self.scorer = hparams["scorer"]
+        try:
+            self.scorer = hparams["scorer"]
+        except KeyError:
+            self.scorer = None
 
         self.mlp = MLP(
             embed_dim * 5,

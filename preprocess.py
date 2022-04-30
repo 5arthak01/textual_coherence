@@ -1,9 +1,11 @@
+from functools import cache
 import os
 import logging
 import config
 from utils.logging_utils import _set_basic_logging
 from utils.data_utils import DataSet
 from models.infersent_models import InferSent
+from sentence_transformers import SentenceTransformer
 from models.language_models import LanguageModel
 import torch
 import numpy as np
@@ -13,6 +15,7 @@ import itertools
 import pickle
 from tqdm import tqdm
 import argparse
+
 
 def permute_articles(cliques, num_perm):
     permuted_articles = []
@@ -24,8 +27,7 @@ def permute_articles(cliques, num_perm):
         inner_perm = []
         i = 0
         for perm in perms:
-            comparator = [old_sent == sent for old_sent, sent
-                          in zip(old_clique, perm)]
+            comparator = [old_sent == sent for old_sent, sent in zip(old_clique, perm)]
             if not np.all(comparator):
                 inner_perm.append(list(perm))
                 i += 1
@@ -33,6 +35,7 @@ def permute_articles(cliques, num_perm):
                 break
         permuted_articles.append(inner_perm)
     return permuted_articles
+
 
 def permute_articles_with_replacement(cliques, num_perm):
     permuted_articles = []
@@ -44,8 +47,9 @@ def permute_articles_with_replacement(cliques, num_perm):
         while i < num_perm:
             random_perm = copy.deepcopy(clique)
             random.shuffle(random_perm)
-            comparator = [old_sent == sent for old_sent, sent
-                          in zip(old_clique, random_perm)]
+            comparator = [
+                old_sent == sent for old_sent, sent in zip(old_clique, random_perm)
+            ]
             if not np.all(comparator):
                 inner_perm.append(random_perm)
                 i += 1
@@ -54,21 +58,18 @@ def permute_articles_with_replacement(cliques, num_perm):
         permuted_articles.append(inner_perm)
     return permuted_articles
 
+
 def prep_wsj_lm_data(data_path):
-    train_list = ['00', '01', '02', '03', '04', '05', '06',
-                  '07', '08', '09', '10']
+    train_list = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
 
-    valid_list = ['11', '12', '13']
+    valid_list = ["11", "12", "13"]
 
-    test_list = ['14', '15', '16', '17', '18', '19', '20',
-                 '21', '22', '23', '24']
+    test_list = ["14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
 
-    datasets = [('train', train_list),
-                ('valid', valid_list),
-                ('test', test_list)]
+    datasets = [("train", train_list), ("valid", valid_list), ("test", test_list)]
 
     for dname, dlist in datasets:
-        with open(os.path.join('./', dname+'.txt'), 'w') as wr:
+        with open(os.path.join("./", dname + ".txt"), "w") as wr:
             for dirname in os.listdir(data_path):
 
                 if dirname in dlist:
@@ -79,14 +80,39 @@ def prep_wsj_lm_data(data_path):
                         fname = os.path.join(subdirpath, filename)
 
                         with open(fname) as fr:
-                            wr.write("<SOA>"+"\n")
-                            wr.write(fr.read().strip()+'\n')
-                            wr.write("<EOA>"+"\n")
+                            wr.write("<SOA>" + "\n")
+                            wr.write(fr.read().strip() + "\n")
+                            wr.write("<EOA>" + "\n")
+
 
 def load_wsj_file_list(data_path):
-    dir_list = ['00', '01', '02', '03', '04', '05', '06', '07', '08',
-                '09', '10', '11', '12', '13', '14', '15', '16', '17',
-                '18', '19', '20', '21', '22', '23', '24']
+    dir_list = [
+        "00",
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+    ]
 
     file_list = []
     for dirname in os.listdir(data_path):
@@ -96,6 +122,7 @@ def load_wsj_file_list(data_path):
                 file_list.append(os.path.join(subdirpath, filename))
     return file_list
 
+
 def load_wiki_file_list(data_path, dir_list):
     file_list = []
     for dirname in os.listdir(data_path):
@@ -103,6 +130,7 @@ def load_wiki_file_list(data_path, dir_list):
             subdirpath = os.path.join(data_path, dirname)
             file_list.append(os.path.join(subdirpath, "extracted_paras.txt"))
     return file_list
+
 
 def load_file_list(data_name, if_sample):
     if data_name in ["wsj", "wsj_bigram", "wsj_trigram"]:
@@ -126,6 +154,64 @@ def load_file_list(data_name, if_sample):
     else:
         raise ValueError("Invalid data name!")
 
+
+def get_sbert(data_name, if_sample=False, return_model=False):
+    logging.info("Start parsing...")
+    file_list = load_file_list(data_name, if_sample)
+
+    sentences = []
+    for file_path in file_list:
+        with open(file_path) as f:
+            for line in f:
+                line = line.strip()
+                if (line != "<para_break>") and (line != ""):
+                    sentences.append(line)
+    logging.info("%d sentences in total." % len(sentences))
+
+    logging.info("Loading SBERT models...")
+    # params = {
+    #     "bsize": 64,
+    #     "word_emb_dim": 300,
+    #     "enc_lstm_dim": 2048,
+    #     "pool_type": "max",
+    #     "dpout_model": 0.0,
+    #     "version": 1,
+    # }
+    # model = InferSent(params)
+    os.makedirs(config.SBERT_CACHE_PATH, exist_ok=True)
+    model = SentenceTransformer(
+        "all-mpnet-base-v2", cache_folder=config.SBERT_CACHE_PATH
+    )
+
+    # model.load_state_dict(torch.load(config.INFERSENT_MODEL))
+    # model.set_w2v_path(config.WORD_EMBEDDING)
+    # vocab_size = 10000 if if_sample else 2196017
+    # model.build_vocab_k_words(K=vocab_size)
+    # if on_gpu:
+    #     model.cuda()
+
+    logging.info("Encoding sentences...")
+    pool = model.start_multi_process_pool()
+    embeddings = model.encode_multi_process(
+        sentences,
+        pool=pool,
+        batch_size=128,
+    )
+    model.stop_multi_process_pool(pool)
+    logging.info("number of sentences encoded: %d" % len(embeddings))
+
+    assert len(sentences) == len(embeddings), "Lengths don't match!"
+    embed_dict = dict(zip(sentences, embeddings))
+    np.random.seed(0)
+    embed_dict["<SOA>"] = np.random.uniform(size=768).astype(np.float32)
+    embed_dict["<EOA>"] = np.random.uniform(size=768).astype(np.float32)
+
+    if return_model:
+        return embed_dict, model
+    else:
+        return embed_dict
+
+
 def get_infersent(data_name, on_gpu=True, if_sample=False, return_model=False):
     logging.info("Start parsing...")
     file_list = load_file_list(data_name, if_sample)
@@ -135,18 +221,18 @@ def get_infersent(data_name, on_gpu=True, if_sample=False, return_model=False):
         with open(file_path) as f:
             for line in f:
                 line = line.strip()
-                if (line != '<para_break>') and (line != ''):
+                if (line != "<para_break>") and (line != ""):
                     sentences.append(line)
     logging.info("%d sentences in total." % len(sentences))
 
     logging.info("Loading infersent models...")
     params = {
-        'bsize': 64,
-        'word_emb_dim': 300,
-        'enc_lstm_dim': 2048,
-        'pool_type': 'max',
-        'dpout_model': 0.0,
-        'version': 1
+        "bsize": 64,
+        "word_emb_dim": 300,
+        "enc_lstm_dim": 2048,
+        "pool_type": "max",
+        "dpout_model": 0.0,
+        "version": 1,
     }
     model = InferSent(params)
     model.load_state_dict(torch.load(config.INFERSENT_MODEL))
@@ -158,7 +244,8 @@ def get_infersent(data_name, on_gpu=True, if_sample=False, return_model=False):
 
     logging.info("Encoding sentences...")
     embeddings = model.encode(
-        sentences, 128, config.MAX_SENT_LENGTH, tokenize=False, verbose=True)
+        sentences, 128, config.MAX_SENT_LENGTH, tokenize=False, verbose=True
+    )
     logging.info("number of sentences encoded: %d" % len(embeddings))
 
     assert len(sentences) == len(embeddings), "Lengths don't match!"
@@ -172,6 +259,7 @@ def get_infersent(data_name, on_gpu=True, if_sample=False, return_model=False):
     else:
         return embed_dict
 
+
 def get_average_glove(data_name, if_sample=False):
     logging.info("Start parsing...")
     file_list = load_file_list(data_name, if_sample)
@@ -181,7 +269,7 @@ def get_average_glove(data_name, if_sample=False):
         with open(file_path) as f:
             for line in f:
                 line = line.strip()
-                if (line != '<para_break>') and (line != ''):
+                if (line != "<para_break>") and (line != ""):
                     sentences.append(line)
     logging.info("%d sentences in total." % len(sentences))
 
@@ -189,8 +277,8 @@ def get_average_glove(data_name, if_sample=False):
     word_vec = {}
     with open(config.WORD_EMBEDDING) as f:
         for line in f:
-            word, vec = line.split(' ', 1)
-            word_vec[word] = np.fromstring(vec, sep=' ')
+            word, vec = line.split(" ", 1)
+            word_vec[word] = np.fromstring(vec, sep=" ")
 
     embed_dict = {}
     for s in sentences:
@@ -208,6 +296,7 @@ def get_average_glove(data_name, if_sample=False):
     embed_dict["<EOA>"] = np.random.uniform(size=300).astype(np.float32)
     return embed_dict
 
+
 def get_lm_hidden(data_name, lm_name, corpus):
     logging.info("Start parsing...")
     file_list = load_file_list(data_name, False)
@@ -217,11 +306,13 @@ def get_lm_hidden(data_name, lm_name, corpus):
         with open(file_path) as f:
             for line in f:
                 line = line.strip()
-                if (line != '<para_break>') and (line != ''):
+                if (line != "<para_break>") and (line != ""):
                     sentences.append(line)
     logging.info("%d sentences in total." % len(sentences))
 
-    with open(os.path.join(config.CHECKPOINT_PATH, lm_name + "_forward.pkl"), "rb") as f:
+    with open(
+        os.path.join(config.CHECKPOINT_PATH, lm_name + "_forward.pkl"), "rb"
+    ) as f:
         hparams = pickle.load(f)
 
     kwargs = {
@@ -244,15 +335,15 @@ def get_lm_hidden(data_name, lm_name, corpus):
     embed_dict = {}
     ini_hidden = forward_lm.init_hidden(1)
     for sent in tqdm(sentences):
-        fs = [corpus.vocab[w] for w in ['<eos>'] + sent.split() + ['<eos>']]
+        fs = [corpus.vocab[w] for w in ["<eos>"] + sent.split() + ["<eos>"]]
         fs = torch.LongTensor(fs).unsqueeze(1)
-        fs = fs.to('cuda')
+        fs = fs.to("cuda")
         fout = forward_lm.encode(fs, ini_hidden)
         fout = torch.max(fout, 0)[0].squeeze().data.cpu().numpy().astype(np.float32)
 
-        bs = [corpus.vocab[w] for w in ['<eos>'] + sent.split()[::-1] + ['<eos>']]
+        bs = [corpus.vocab[w] for w in ["<eos>"] + sent.split()[::-1] + ["<eos>"]]
         bs = torch.LongTensor(bs).unsqueeze(1)
-        bs = bs.to('cuda')
+        bs = bs.to("cuda")
         bout = backward_lm.encode(bs, ini_hidden)
         bout = torch.max(bout, 0)[0].squeeze().data.cpu().numpy().astype(np.float32)
 
@@ -261,6 +352,7 @@ def get_lm_hidden(data_name, lm_name, corpus):
     embed_dict["<SOA>"] = np.random.uniform(size=2048).astype(np.float32)
     embed_dict["<EOA>"] = np.random.uniform(size=2048).astype(np.float32)
     return embed_dict
+
 
 def get_s2s_hidden(data_name, model_name, corpus):
     logging.info("Start parsing...")
@@ -271,11 +363,13 @@ def get_s2s_hidden(data_name, model_name, corpus):
         with open(file_path) as f:
             for line in f:
                 line = line.strip()
-                if (line != '<para_break>') and (line != ''):
+                if (line != "<para_break>") and (line != ""):
                     sentences.append(line)
     logging.info("%d sentences in total." % len(sentences))
 
-    with open(os.path.join(config.CHECKPOINT_PATH, model_name + "_forward.pkl"), "rb") as f:
+    with open(
+        os.path.join(config.CHECKPOINT_PATH, model_name + "_forward.pkl"), "rb"
+    ) as f:
         hparams = pickle.load(f)
 
     kwargs = {
@@ -291,27 +385,29 @@ def get_s2s_hidden(data_name, model_name, corpus):
     forward_model.eval()
 
     backward_model = Seq2SeqModel(**kwargs)
-    backward_model.load(os.path.join(config.CHECKPOINT_PATH, model_name + "_backward.pt"))
+    backward_model.load(
+        os.path.join(config.CHECKPOINT_PATH, model_name + "_backward.pt")
+    )
     backward_model = backward_model.model
     backward_model.eval()
 
     embed_dict = {}
     for sent in tqdm(sentences):
-        fs = [corpus.vocab[w] for w in sent.split() + ['<eos>']]
+        fs = [corpus.vocab[w] for w in sent.split() + ["<eos>"]]
         # fs_len = torch.LongTensor([len(fs)])
         # fs_len = fs_len.to('cuda')
         fs = torch.LongTensor(fs).unsqueeze(0)
-        fs = fs.to('cuda')
+        fs = fs.to("cuda")
         # fout = forward_model.encoding(fs, fs_len)
         fout = forward_model.encode(fs)
         # fout = fout.squeeze().data.cpu().numpy().astype(np.float32)
         fout = torch.max(fout, 1)[0].squeeze().data.cpu().numpy().astype(np.float32)
 
-        bs = [corpus.vocab[w] for w in sent.split()[::-1] + ['<eos>']]
+        bs = [corpus.vocab[w] for w in sent.split()[::-1] + ["<eos>"]]
         # bs_len = torch.LongTensor([len(bs)])
         # bs_len = bs_len.to('cuda')
         bs = torch.LongTensor(bs).unsqueeze(0)
-        bs = bs.to('cuda')
+        bs = bs.to("cuda")
         # bout = backward_model.encoding(bs, bs_len)
         bout = backward_model.encode(bs)
         # bout = bout.squeeze().data.cpu().numpy().astype(np.float32)
@@ -322,6 +418,7 @@ def get_s2s_hidden(data_name, model_name, corpus):
     embed_dict["<SOA>"] = np.random.uniform(size=2048).astype(np.float32)
     embed_dict["<EOA>"] = np.random.uniform(size=2048).astype(np.float32)
     return embed_dict
+
 
 def save_eval_perm(data_name, if_sample=False, random_seed=config.RANDOM_SEED):
     random.seed(random_seed)
@@ -365,8 +462,9 @@ def save_eval_perm(data_name, if_sample=False, random_seed=config.RANDOM_SEED):
     dataset.save_test_perm(test_df)
     logging.info("Finished!")
 
+
 def add_args(parser):
-    parser.add_argument('--data_name', type=str, default='wsj_bigram')
+    parser.add_argument("--data_name", type=str, default="wsj_bigram")
 
 
 if __name__ == "__main__":

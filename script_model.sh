@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH -c 40
-#SBATCH -G 1
+#SBATCH -G 4
 #SBATCH --time=4-00:00:00
 #SBATCH --mail-type=END
-#SBATCH -J experiments_dis
-#SBATCH --output=logs_sigmoid.txt
+#SBATCH -J NLP
+#SBATCH --output=logs_bert.txt
 
 cd
 source .bashrc
 cd ~/cross_domain_coherence
 conda activate pytorch
-python models_experi.py
+python bert.py
 

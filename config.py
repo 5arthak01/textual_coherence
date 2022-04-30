@@ -9,6 +9,7 @@ RESULTS_PATH = "%s/results" % ROOT_PATH
 
 # ------------------- DATA -------------------
 
+SBERT_CACHE_PATH = "%s/sbert_cache" % DATA_PATH
 INFERSENT_MODEL = "%s/infersent1.pkl" % DATA_PATH
 WORD_EMBEDDING = "%s/glove.840B.300d.txt" % DATA_PATH
 
