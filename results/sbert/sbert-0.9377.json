@@ -1,0 +1,32 @@
+{
+    "hparams": {
+        "loss": "margin",
+        "input_dropout": 0.6,
+        "hidden_state": 500,
+        "hidden_layers": 1,
+        "hidden_dropout": 0.3,
+        "num_epochs": 50,
+        "margin": 5.0,
+        "lr": 0.001,
+        "l2_reg_lambda": 0.0,
+        "use_bn": false,
+        "task": "discrimination",
+        "bidirectional": false
+    },
+    "discrimination": [
+        0.9253795066413663,
+        [
+            0.8820083682008368,
+            0.924022346368715,
+            0.9782115869017632
+        ]
+    ],
+    "insertion": [
+        0.2984713791414052,
+        [
+            0.4768737132230855,
+            0.20660624939859432,
+            0.12508987418654374
+        ]
+    ]
+}
