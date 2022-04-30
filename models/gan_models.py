@@ -53,7 +53,7 @@ class MLP(nn.Module):
                 layers["bn{}".format(l_i)] = nn.BatchNorm1d(n_hidden)
             current_dims = n_hidden
         layers["out"] = nn.Linear(current_dims, n_class)
-        layers["sigmoid"] = nn.sigmoid()
+        layers["sigmoid"] = nn.Sigmoid()
 
         self.model = nn.Sequential(layers)
 
