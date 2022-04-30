@@ -16,15 +16,14 @@ def _sequence_mask(sequence_length, max_len=None):
     seq_range_expand = Variable(seq_range_expand)
     if sequence_length.is_cuda:
         seq_range_expand = seq_range_expand.cuda()
-    seq_length_expand = (sequence_length.unsqueeze(1)
-                         .expand_as(seq_range_expand))
+    seq_length_expand = sequence_length.unsqueeze(1).expand_as(seq_range_expand)
     return seq_range_expand < seq_length_expand
 
 
 def compute_loss(logit, target, length):
     logit_flat = logit.view(-1, logit.size(-1))
     target_flat = target.view(-1)
-    losses_flat = F.cross_entropy(logit_flat, target_flat, reduction='none')
+    losses_flat = F.cross_entropy(logit_flat, target_flat, reduction="none")
     losses = losses_flat.view(*target.size())
     mask = _sequence_mask(length, target.size(1))
     losses = losses * mask.float()
@@ -35,7 +34,7 @@ def compute_loss(logit, target, length):
 class MLP(nn.Module):
     def __init__(self, input_dims, n_hiddens, n_class, dropout, use_bn):
         super(MLP, self).__init__()
-        assert isinstance(input_dims, int), 'Invalid type for input_dims!'
+        assert isinstance(input_dims, int), "Invalid type for input_dims!"
         self.input_dims = input_dims
         current_dims = input_dims
         layers = OrderedDict()
@@ -47,18 +46,20 @@ class MLP(nn.Module):
 
         for i, n_hidden in enumerate(n_hiddens):
             l_i = i + 1
-            layers['fc{}'.format(l_i)] = nn.Linear(current_dims, n_hidden)
-            layers['relu{}'.format(l_i)] = nn.ReLU()
-            layers['drop{}'.format(l_i)] = nn.Dropout(dropout)
+            layers["fc{}".format(l_i)] = nn.Linear(current_dims, n_hidden)
+            layers["relu{}".format(l_i)] = nn.ReLU()
+            layers["drop{}".format(l_i)] = nn.Dropout(dropout)
             if use_bn:
-                layers['bn{}'.format(l_i)] = nn.BatchNorm1d(n_hidden)
+                layers["bn{}".format(l_i)] = nn.BatchNorm1d(n_hidden)
             current_dims = n_hidden
-        layers['out'] = nn.Linear(current_dims, n_class)
+        layers["out"] = nn.Linear(current_dims, n_class)
+        layers["sigmoid"] = torch.sigmoid()
 
         self.model = nn.Sequential(layers)
 
     def forward(self, input):
         return self.model.forward(input)
+
 
 class MLP_Discriminator(nn.Module):
     def __init__(self, embed_dim, hparams, use_cuda):
@@ -72,12 +73,22 @@ class MLP_Discriminator(nn.Module):
         self.bidirectional = hparams["bidirectional"]
         self.use_cuda = use_cuda
 
-        self.mlp = MLP(embed_dim * 5, [self.hidden_state] * self.hidden_layers,
-                       1, self.hidden_dropout, self.use_bn)
+        self.mlp = MLP(
+            embed_dim * 5,
+            [self.hidden_state] * self.hidden_layers,
+            1,
+            self.hidden_dropout,
+            self.use_bn,
+        )
         self.dropout = nn.Dropout(self.input_dropout)
         if self.bidirectional:
-            self.backward_mlp = MLP(embed_dim * 5, [self.hidden_state] * self.hidden_layers,
-                                    1, self.hidden_dropout, self.use_bn)
+            self.backward_mlp = MLP(
+                embed_dim * 5,
+                [self.hidden_state] * self.hidden_layers,
+                1,
+                self.hidden_dropout,
+                self.use_bn,
+            )
             self.backward_dropout = nn.Dropout(self.input_dropout)
 
     def forward(self, s1, s2):
@@ -85,11 +96,12 @@ class MLP_Discriminator(nn.Module):
         scores = self.mlp(self.dropout(inputs))
         if self.bidirectional:
             backward_inputs = torch.cat(
-                [s2, s1, s2 - s1, s1 * s2, torch.abs(s1 - s2)], -1)
-            backward_scores = self.backward_mlp(
-                self.backward_dropout(backward_inputs))
+                [s2, s1, s2 - s1, s1 * s2, torch.abs(s1 - s2)], -1
+            )
+            backward_scores = self.backward_mlp(self.backward_dropout(backward_inputs))
             scores = (scores + backward_scores) / 2
         return scores
+
 
 class RNN_LM(nn.Module):
     def __init__(self, vocab_size, embed_size, hparams, use_cuda):
@@ -106,20 +118,20 @@ class RNN_LM(nn.Module):
 
         self.embedding = nn.Embedding(vocab_size, embed_size)
         rnn_class = {
-            'rnn': nn.RNN,
-            'gru': nn.GRU,
-            'lstm': nn.LSTM,
+            "rnn": nn.RNN,
+            "gru": nn.GRU,
+            "lstm": nn.LSTM,
         }[self.cell_type]
-        self.rnn = rnn_class(self.embed_size, self.hidden_size, self.num_layers,
-                             dropout=self.rnn_dropout)
+        self.rnn = rnn_class(
+            self.embed_size, self.hidden_size, self.num_layers, dropout=self.rnn_dropout
+        )
         self.dropout = nn.Dropout(self.hidden_dropout)
 
         if self.tie_embed:
             self.linear_out = nn.Linear(embed_size, vocab_size)
             if embed_size != self.hidden_size:
                 in_size = self.hidden_size
-                self.linear_proj = nn.Linear(
-                    in_size, embed_size, bias=None)
+                self.linear_proj = nn.Linear(in_size, embed_size, bias=None)
             self.linear_out.weight = self.embedding.weight
         else:
             self.linear_out = nn.Linear(self.hidden_size, vocab_size)
@@ -127,15 +139,13 @@ class RNN_LM(nn.Module):
 
     def set_embed(self, emb):
         with torch.no_grad():
-            self.embedding.weight.fill_(0.)
+            self.embedding.weight.fill_(0.0)
             self.embedding.weight += emb
 
     def init_hidden(self, batch_size):
-        h0 = Variable(torch.zeros(self.num_layers,
-                                  batch_size, self.hidden_size))
-        if self.cell_type == 'lstm':
-            c0 = Variable(torch.zeros(self.num_layers,
-                                      batch_size, self.hidden_size))
+        h0 = Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size))
+        if self.cell_type == "lstm":
+            c0 = Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size))
             return (h0.cuda(), c0.cuda()) if self.use_cuda else (h0, c0)
         else:
             return h0.cuda() if self.use_cuda else c0
