@@ -6,6 +6,8 @@ After "Training BigramCoherence model..."
 
 `results_discrimination.zip` has results of hyperparameter tuning for `run_bigram_coherence` (without sigmoid)
 
+- `baseline.json` is the baseline results for `run_bigram_coherence`
+
 # Analysis of Hyperparameter tuning with discrimination validation
 
 ### Hyparameters
