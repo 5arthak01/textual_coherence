@@ -71,6 +71,16 @@ def run_bigram_coherence(args):
     else:
         raise ValueError("Invalid sent encoder name!")
 
+    # os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
+
+    scorer = "tanh"
+
+    RESULTS_DIR = f"{config.ROOT_PATH}/results_" + scorer
+    MODEL_SAVE_PATH = RESULTS_DIR + "/models"
+    RESULTS_SAVE_PATH = RESULTS_DIR
+    os.makedirs(RESULTS_SAVE_PATH, exist_ok=True)
+    os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
+
     logging.info("Training BigramCoherence model...")
     # print("Training BigramCoherence model...")
     kwargs = {
@@ -89,17 +99,9 @@ def run_bigram_coherence(args):
             "use_bn": args.use_bn,
             "task": "discrimination",
             "bidirectional": args.bidirectional,
+            "scorer": scorer,
         },
     }
-    # os.makedirs(config.CHECKPOINT_PATH, exist_ok=True)
-
-    scorer = "tanh"
-
-    RESULTS_DIR = f"{config.ROOT_PATH}/results_" + scorer
-    MODEL_SAVE_PATH = RESULTS_DIR + "/models"
-    RESULTS_SAVE_PATH = RESULTS_DIR
-    os.makedirs(RESULTS_SAVE_PATH, exist_ok=True)
-    os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 
     # print_current_time()
     if PRETRAINED_MODEL:
