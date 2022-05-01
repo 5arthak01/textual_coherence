@@ -83,7 +83,7 @@ class BigramCoherence:
             # print(data)
             # print("\n\n")
             # raise
-            data[data == None] = np.array()
+            data[data == None] = np.array([])
             data = Variable(torch.from_numpy(data))
         return data.cuda() if self.use_cuda else data
 
