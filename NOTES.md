@@ -23,7 +23,7 @@ After "Training BigramCoherence model..."
 
 - input_dropout: [0.5, 0.6, 0.7]
 - hidden_layers: [1, 2]
-- hidden_dropout: [0.2, 0.30000000000000004, 0.4000000000000001]
+- hidden_dropout: [0.2, 0.3, 0.4]
 - margin: [4.0, 5.0, 6.0]
 - weight_decay: [0.0, 0.1]
 - dpout_model: [0.0, 0.05, 0.1]
@@ -32,34 +32,155 @@ After "Training BigramCoherence model..."
 
 ##### Scores
 
-['0.9291', '0.9286', '0.9279', '0.9274', '0.9269', '0.9269', '0.9265', '0.9265', '0.9264', '0.9264', '0.9263', '0.9263', '0.9259', '0.9259', '0.9259', '0.9257', '0.9256', '0.9254', '0.9252', '0.9250']
+- Discrimination
 
-['0.3091', '0.3082', '0.3072', '0.3069', '0.3069', '0.3068', '0.3064', '0.3062', '0.3059', '0.3054', '0.3054', '0.3048', '0.3048', '0.3046', '0.3043', '0.3042', '0.3041', '0.3040', '0.3036', '0.3036']
+  | Description | Value   |
+  | ----------- | ------- |
+  | mean        | 0.92649 |
+  | std         | 0.00107 |
+  | min         | 0.925   |
+  | max         | 0.9291  |
+  | 25%         | 0.92585 |
+  | 50%         | 0.92635 |
+  | 75%         | 0.9269  |
 
-##### Discrimination
+- Insertion
+
+  | Description | Value    |
+  | ----------- | -------- |
+  | mean        | 0.30562  |
+  | std         | 0.00156  |
+  | min         | 0.3036   |
+  | max         | 0.3091   |
+  | 25%         | 0.304275 |
+  | 50%         | 0.3054   |
+  | 75%         | 0.306825 |
+
+##### Trends
 
 - input_dropout: 0.5 > 0.6
 - hidden_layers: 2 > 1
-- hidden_dropout: 0.30000000000000004 > 0.2 > 0.4000000000000001
 - margin: 6.0 > 4.0 > 5.0
 - weight_decay: 0.0
 - dpout_model: 0.0 > 0.1 > 0.05
+- hidden_dropout
+  - Discrimination: 0.3 > 0.2 > 0.4
+  - Insertion: 0.3 > 0.4 > 0.2
 
-##### Insertion
+### Best results
 
-- input_dropout: 0.5 > 0.6
-- hidden_layers: 2 > 1
-- hidden_dropout: 0.30000000000000004 > 0.4000000000000001 > 0.2
-- margin: 6.0 > 4.0 > 5.0
-- weight_decay: 0.0
-- dpout_model: 0.0 > 0.1 > 0.05
-
-### Best results:
+- Same model performs best in both tasks
 
 ```python
-print(trimmed_disc_models[0])
-{'hparams': {'loss': 'margin', 'input_dropout': 0.5, 'hidden_state': 500, 'hidden_layers': 2, 'hidden_dropout': 0.30000000000000004, 'num_epochs': 50, 'margin': 6.0, 'lr': 0.001, 'weight_decay': 0.0, 'use_bn': False, 'task': 'discrimination', 'bidirectional': False, 'dpout_model': 0.0}, 'discrimination': [0.9291271347248576, [0.8881799163179916, 0.9248603351955307, 0.980352644836272]], 'insertion': [0.30914630954998895, [0.49057581191472405, 0.23112018911437762, 0.12588024765485295]]}
-
-print(trimmed_ins_models[0])
-{'hparams': {'loss': 'margin', 'input_dropout': 0.5, 'hidden_state': 500, 'hidden_layers': 2, 'hidden_dropout': 0.30000000000000004, 'num_epochs': 50, 'margin': 6.0, 'lr': 0.001, 'weight_decay': 0.0, 'use_bn': False, 'task': 'discrimination', 'bidirectional': False, 'dpout_model': 0.0}, 'discrimination': [0.9291271347248576, [0.8881799163179916, 0.9248603351955307, 0.980352644836272]], 'insertion': [0.30914630954998895, [0.49057581191472405, 0.23112018911437762, 0.12588024765485295]]}
+{
+    "hparams": {
+        "loss": "margin",
+        "input_dropout": 0.5,
+        "hidden_state": 500,
+        "hidden_layers": 2,
+        "hidden_dropout": 0.3,
+        "num_epochs": 50,
+        "margin": 6.0,
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "use_bn": False,
+        "task": "discrimination",
+        "bidirectional": False,
+        "dpout_model": 0.0
+    },
+}
 ```
+
+# Analysis of Hyperparameter tuning with insertion validation
+
+### Results for best 20
+
+##### Scores
+
+- Discrimination
+
+  | Description | Value    |
+  | ----------- | -------- |
+  | mean        | 0.926410 |
+  | std         | 0.001753 |
+  | min         | 0.923900 |
+  | max         | 0.930300 |
+  | 25%         | 0.925100 |
+  | 50%         | 0.925900 |
+  | 75%         | 0.927425 |
+
+- Insertion
+
+  | Description | Value  |
+  | ----------- | ------ |
+  | mean        | 0.3041 |
+  | std         | 0.0029 |
+  | min         | 0.301  |
+  | max         | 0.3124 |
+  | 25%         | 0.3024 |
+  | 50%         | 0.3033 |
+  | 75%         | 0.305  |
+
+##### Trends
+
+- input_dropout: 0.5
+- hidden_layers: 1 > 2
+- hidden_dropout: 0.4 > 0.2 > 0.3
+- margin: 6.0 > 5.0 > 4.0
+- weight_decay: 0.0
+- dpout_model: 0.05 > 0.1 > 0.0
+
+### Best results
+
+- Same model performs best in both tasks
+
+```python
+{
+    "hparams": {
+        "loss": "margin",
+        "input_dropout": 0.5,
+        "hidden_state": 500,
+        "hidden_layers": 1,
+        "hidden_dropout": 0.4,
+        "num_epochs": 50,
+        "margin": 6.0,
+        "lr": 0.001,
+        "l2_reg_lambda": 0.0,
+        "use_bn": False,
+        "task": "insertion",
+        "bidirectional": False,
+        "dpout_model": 0.05
+    }
+}
+```
+
+# Results
+
+### After Hyperparameter tuning
+
+| Sr. No. | Validation Task | Bidirectional | Output function | Encoder       |
+| ------- | --------------- | ------------- | --------------- | ------------- |
+| 0       | discrimination  | False         | None            | average_glove |
+| 1       | discrimination  | False         | None            | sbert         |
+| 2       | discrimination  | False         | tanh            | average_glove |
+| 3       | discrimination  | False         | tanh            | sbert         |
+| 4       | discrimination  | False         | sigmoid         | average_glove |
+| 5       | discrimination  | False         | sigmoid         | sbert         |
+| 6       | discrimination  | True          | None            | average_glove |
+| 7       | discrimination  | True          | None            | sbert         |
+| 8       | discrimination  | True          | tanh            | average_glove |
+| 9       | discrimination  | True          | tanh            | sbert         |
+| 10      | discrimination  | True          | sigmoid         | average_glove |
+| 11      | discrimination  | True          | sigmoid         | sbert         |
+| 12      | insertion       | False         | None            | average_glove |
+| 13      | insertion       | False         | None            | sbert         |
+| 14      | insertion       | False         | tanh            | average_glove |
+| 15      | insertion       | False         | tanh            | sbert         |
+| 16      | insertion       | False         | sigmoid         | average_glove |
+| 17      | insertion       | False         | sigmoid         | sbert         |
+| 18      | insertion       | True          | None            | average_glove |
+| 19      | insertion       | True          | None            | sbert         |
+| 20      | insertion       | True          | tanh            | average_glove |
+| 21      | insertion       | True          | tanh            | sbert         |
+| 22      | insertion       | True          | sigmoid         | average_glove |
+| 23      | insertion       | True          | sigmoid         | sbert         |
