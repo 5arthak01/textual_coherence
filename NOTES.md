@@ -1,25 +1,21 @@
-O/P for `run_bigram_coherence`
-After "Training BigramCoherence model..."
-
-- fit() `coherence_models.py` : 143
-- evaluate_dis() `coherence_models.py` : 238 prints all sentences
-
 `results_discrimination.zip` has results of hyperparameter tuning for `run_bigram_coherence` (without sigmoid)
 
 - `baseline.json` is the baseline results for `run_bigram_coherence`
 
-# Analysis of Hyperparameter tuning with discrimination validation
-
 # Comparison of baseline results
 
-| BASELINE       | Discrimination      | Insertion           |
-| -------------- | ------------------- | ------------------- |
-| AVG_GLOVE      | 0.9253795066413663  | 0.2984713791414052  |
-| SIGMOID        | 0.8039373814041746  | 0.2146964623152086  |
-| TANH AVG_GLOVE | 0.10488614800759014 | 0.7206061213667566  |
-| SBERT          | 0.9385199240986717  | 0.33034726781926527 |
+- Results with the recommended hyperparameters
 
-### Hyparameters
+| Output function | Encoder   | Discrimination | Insertion |
+| --------------- | --------- | -------------- | --------- |
+| None            | Avg_Glove | 0.92537        | 0.29847   |
+| Sigmoid         | Avg_Glove | 0.80393        | 0.21469   |
+| TanH            | Avg_Glove | 0.10488        | 0.72060   |
+| None            | SBERT     | 0.93851        | 0.33034   |
+
+# Analysis of Hyperparameter tuning
+
+**Hyparameters tuned:**
 
 - input_dropout: [0.5, 0.6, 0.7]
 - hidden_layers: [1, 2]
@@ -28,9 +24,11 @@ After "Training BigramCoherence model..."
 - weight_decay: [0.0, 0.1]
 - dpout_model: [0.0, 0.05, 0.1]
 
-### Results for best 20
+## Discrimination validation
 
-##### Scores
+**Results for best 20 are taken**
+
+### Scores
 
 - Discrimination
 
@@ -56,7 +54,7 @@ After "Training BigramCoherence model..."
   | 50%         | 0.3054   |
   | 75%         | 0.306825 |
 
-##### Trends
+### Trends
 
 - input_dropout: 0.5 > 0.6
 - hidden_layers: 2 > 1
@@ -67,7 +65,7 @@ After "Training BigramCoherence model..."
   - Discrimination: 0.3 > 0.2 > 0.4
   - Insertion: 0.3 > 0.4 > 0.2
 
-### Best results
+### Best model
 
 - Same model performs best in both tasks
 
@@ -91,11 +89,11 @@ After "Training BigramCoherence model..."
 }
 ```
 
-# Analysis of Hyperparameter tuning with insertion validation
+## Insertion validation
 
-### Results for best 20
+**Results for best 20 are taken**
 
-##### Scores
+### Scores
 
 - Discrimination
 
@@ -121,7 +119,7 @@ After "Training BigramCoherence model..."
   | 50%         | 0.3033 |
   | 75%         | 0.305  |
 
-##### Trends
+### Trends
 
 - input_dropout: 0.5
 - hidden_layers: 1 > 2
@@ -130,7 +128,7 @@ After "Training BigramCoherence model..."
 - weight_decay: 0.0
 - dpout_model: 0.05 > 0.1 > 0.0
 
-### Best results
+### Best model
 
 - Same model performs best in both tasks
 
@@ -158,29 +156,29 @@ After "Training BigramCoherence model..."
 
 ### After Hyperparameter tuning
 
-| Sr. No. | Validation Task | Bidirectional | Output function | Encoder       |
-| ------- | --------------- | ------------- | --------------- | ------------- |
-| 0       | discrimination  | False         | None            | average_glove |
-| 1       | discrimination  | False         | None            | sbert         |
-| 2       | discrimination  | False         | tanh            | average_glove |
-| 3       | discrimination  | False         | tanh            | sbert         |
-| 4       | discrimination  | False         | sigmoid         | average_glove |
-| 5       | discrimination  | False         | sigmoid         | sbert         |
-| 6       | discrimination  | True          | None            | average_glove |
-| 7       | discrimination  | True          | None            | sbert         |
-| 8       | discrimination  | True          | tanh            | average_glove |
-| 9       | discrimination  | True          | tanh            | sbert         |
-| 10      | discrimination  | True          | sigmoid         | average_glove |
-| 11      | discrimination  | True          | sigmoid         | sbert         |
-| 12      | insertion       | False         | None            | average_glove |
-| 13      | insertion       | False         | None            | sbert         |
-| 14      | insertion       | False         | tanh            | average_glove |
-| 15      | insertion       | False         | tanh            | sbert         |
-| 16      | insertion       | False         | sigmoid         | average_glove |
-| 17      | insertion       | False         | sigmoid         | sbert         |
-| 18      | insertion       | True          | None            | average_glove |
-| 19      | insertion       | True          | None            | sbert         |
-| 20      | insertion       | True          | tanh            | average_glove |
-| 21      | insertion       | True          | tanh            | sbert         |
-| 22      | insertion       | True          | sigmoid         | average_glove |
-| 23      | insertion       | True          | sigmoid         | sbert         |
+| Validation Task | Bidirectional | Output function | Encoder       | Discr      | Ins        | Avg        |
+| --------------- | ------------- | --------------- | ------------- | ---------- | ---------- | ---------- |
+| discrimination  | False         | None            | average_glove | 0.9204     | 0.3028     | 0.6116     |
+| discrimination  | False         | None            | sbert         | 0.9232     | 0.3139     | 0.61855    |
+| discrimination  | False         | tanh            | average_glove | 0.0952     | 0.8153     | 0.45525    |
+| discrimination  | False         | tanh            | sbert         | 0.2989     | 0.2798     | 0.28935    |
+| discrimination  | False         | sigmoid         | average_glove | 0.6148     | **0.4915** | 0.55315    |
+| discrimination  | False         | sigmoid         | sbert         | 0.2711     | 0.3196     | 0.29535    |
+| discrimination  | True          | None            | average_glove | 0.9259     | 0.3091     | 0.61749    |
+| discrimination  | True          | None            | sbert         | **0.9268** | 0.313      | 0.6199     |
+| discrimination  | True          | tanh            | average_glove | 0.0001     | 1.0        | 0.50005    |
+| discrimination  | True          | tanh            | sbert         | 0.807      | 0.3134     | 0.5602     |
+| discrimination  | True          | sigmoid         | average_glove | 0.713      | 0.3809     | 0.54695    |
+| discrimination  | True          | sigmoid         | sbert         | 0.8113     | 0.2484     | 0.52985    |
+| insertion       | False         | None            | average_glove | 0.9185     | 0.2993     | 0.6089     |
+| insertion       | False         | None            | sbert         | 0.9226     | 0.3164     | 0.61949    |
+| insertion       | False         | tanh            | average_glove | 0.0        | 1.0        | 0.5        |
+| insertion       | False         | tanh            | sbert         | 0.5872     | **0.4079** | 0.49755    |
+| insertion       | False         | sigmoid         | average_glove | 0.0581     | 0.9511     | 0.50459    |
+| insertion       | False         | sigmoid         | sbert         | 0.6704     | 0.1794     | 0.4249     |
+| insertion       | True          | None            | average_glove | 0.9191     | 0.2929     | 0.606      |
+| insertion       | True          | None            | sbert         | **0.9245** | 0.3239     | **0.6242** |
+| insertion       | True          | tanh            | average_glove | 0.7525     | 0.3163     | 0.5344     |
+| insertion       | True          | tanh            | sbert         | 0.7852     | 0.3211     | 0.55315    |
+| insertion       | True          | sigmoid         | average_glove | 0.6717     | 0.3519     | 0.5118     |
+| insertion       | True          | sigmoid         | sbert         | 0.8125     | 0.3122     | 0.56235    |
