@@ -1,6 +1,8 @@
-`results_discrimination.zip` has results of hyperparameter tuning for `run_bigram_coherence` (without sigmoid)
+# Contributions
 
-- `baseline.json` is the baseline results for `run_bigram_coherence`
+- Sarthak Agrawal:
+- Sarthak Mahajan: Tried using roberta and T5 as sentence encoders. T5 is a generative encoder,and the paper says, "... generative coherence model can be leveraged by our model to benefit from the advantages of both generative and discriminative training". Also did literature review to see the various coherence scoring methods used, that can be employed for our model.
+- Aryan Kharbanda: Read upon Sentence Encoders and tried implementing Neural Sentence Encoder.
 
 # Comparison of baseline results
 
@@ -152,7 +154,7 @@
 }
 ```
 
-# Results
+# Final Results
 
 ### After Hyperparameter tuning
 

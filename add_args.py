@@ -1,4 +1,8 @@
 def add_bigram_args(parser):
+    """
+    Pass hyperparameters to the model from cmd line
+    """
+
     # System Hyperparameters
     parser.add_argument("--data_name", type=str, default="wsj_bigram", help="data name")
     parser.add_argument("--random_seed", type=int, default=0, help="random seed")

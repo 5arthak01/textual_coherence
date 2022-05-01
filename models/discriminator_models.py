@@ -4,8 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
 
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-
 
 def _sequence_mask(sequence_length, max_len=None):
     if max_len is None:
@@ -110,70 +108,3 @@ class MLP_Discriminator(nn.Module):
             backward_scores = self.backward_mlp(self.backward_dropout(backward_inputs))
             scores = (scores + backward_scores) / 2
         return scores
-
-
-class RNN_LM(nn.Module):
-    def __init__(self, vocab_size, embed_size, hparams, use_cuda):
-        super(RNN_LM, self).__init__()
-        self.vocab_size = vocab_size
-        self.embed_size = embed_size
-        self.hidden_size = hparams["hidden_size"]
-        self.num_layers = hparams["num_layers"]
-        self.cell_type = hparams["cell_type"]
-        self.tie_embed = hparams["tie_embed"]
-        self.rnn_dropout = hparams["rnn_dropout"]
-        self.hidden_dropout = hparams["hidden_dropout"]
-        self.use_cuda = use_cuda
-
-        self.embedding = nn.Embedding(vocab_size, embed_size)
-        rnn_class = {
-            "rnn": nn.RNN,
-            "gru": nn.GRU,
-            "lstm": nn.LSTM,
-        }[self.cell_type]
-        self.rnn = rnn_class(
-            self.embed_size, self.hidden_size, self.num_layers, dropout=self.rnn_dropout
-        )
-        self.dropout = nn.Dropout(self.hidden_dropout)
-
-        if self.tie_embed:
-            self.linear_out = nn.Linear(embed_size, vocab_size)
-            if embed_size != self.hidden_size:
-                in_size = self.hidden_size
-                self.linear_proj = nn.Linear(in_size, embed_size, bias=None)
-            self.linear_out.weight = self.embedding.weight
-        else:
-            self.linear_out = nn.Linear(self.hidden_size, vocab_size)
-            self.linear_proj = lambda x: x
-
-    def set_embed(self, emb):
-        with torch.no_grad():
-            self.embedding.weight.fill_(0.0)
-            self.embedding.weight += emb
-
-    def init_hidden(self, batch_size):
-        h0 = Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size))
-        if self.cell_type == "lstm":
-            c0 = Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size))
-            return (h0.cuda(), c0.cuda()) if self.use_cuda else (h0, c0)
-        else:
-            return h0.cuda() if self.use_cuda else c0
-
-    def encode(self, input, hidden):
-        embedded = self.dropout(self.embedding(input))
-        output, _ = self.rnn(embedded, hidden)
-        return output
-
-    def forward(self, input, hidden):
-        embedded = self.dropout(self.embedding(input))
-        output, hidden = self.rnn(embedded, hidden)
-        max_len, batch_size, _ = output.size()
-        output = output.view(max_len * batch_size, -1)
-        output = self.dropout(output)
-
-        output = self.linear_proj(output)
-        output = self.dropout(output)
-        output = self.linear_out(output)
-
-        output = output.view(max_len, batch_size, -1)
-        return output, hidden

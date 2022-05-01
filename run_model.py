@@ -1,15 +1,11 @@
 from models.coherence_models import BigramCoherence
 from preprocess import (
-    get_infersent,
     get_sbert,
     get_average_glove,
     save_eval_perm,
-    get_lm_hidden,
     get_t5,
 )
-from preprocess import get_s2s_hidden
 from utils.data_utils import DataSet
-from utils.lm_utils import Corpus, SentCorpus
 from utils.logging_utils import _set_basic_logging
 import logging
 import config
@@ -20,9 +16,6 @@ from add_args import add_bigram_args
 import torch
 from datetime import datetime
 
-# from numpy import arange
-from itertools import product
-
 from json import dump
 import pickle
 
@@ -31,8 +24,8 @@ def print_current_time():
     print("\n\nThe time is: {}".format(datetime.now().isoformat()))
 
 
-SAVED_GLOVE = True
-SAVED_SBERT = True
+SAVED_GLOVE = False
+SAVED_SBERT = False
 PRETRAINED_MODEL = False
 
 
@@ -41,7 +34,6 @@ def run_bigram_coherence(args):
     if args.data_name not in config.DATASET:
         raise ValueError("Invalid data name!")
     dataset = DataSet(config.DATASET[args.data_name])
-    # dataset.random_seed = args.random_seed
     if not os.path.isfile(dataset.test_perm):
         save_eval_perm(args.data_name, random_seed=args.random_seed)
 
@@ -49,21 +41,16 @@ def run_bigram_coherence(args):
     train_dataloader = DataLoader(
         dataset=train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=True
     )
+
     valid_dataset = dataset.load_valid(args.portion)
     valid_dataloader = DataLoader(dataset=valid_dataset, batch_size=1, shuffle=False)
     valid_df = dataset.load_valid_perm()
+
     test_dataset = dataset.load_test(args.portion)
     test_dataloader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
     test_df = dataset.load_test_perm()
 
-    # print(train_df.head())
-
     logging.info("Loading sent embedding...")
-
-    # if args.sent_encoder == "infersent":
-    #     sent_embedding = get_infersent(args.data_name, if_sample=args.test)
-    #     embed_dim = 4096
-
     if args.sent_encoder == "sbert":
         if not SAVED_SBERT:
             sent_embedding = get_sbert(args.data_name, if_sample=args.test)
@@ -85,25 +72,18 @@ def run_bigram_coherence(args):
     elif args.sent_encoder == "t5":
         sent_embedding = get_t5(args.data_name, if_sample=args.test)
         embed_dim = 512
-    elif args.sent_encoder == "lm_hidden":
-        corpus = Corpus(train_dataset.file_list, test_dataset.file_list)
-        sent_embedding = get_lm_hidden(args.data_name, "lm_" + args.data_name, corpus)
-        embed_dim = 2048
-    elif args.sent_encoder == "s2s_hidden":
-        corpus = SentCorpus(train_dataset.file_list, test_dataset.file_list)
-        sent_embedding = get_s2s_hidden(args.data_name, "s2s_" + args.data_name, corpus)
-        embed_dim = 2048
     else:
         raise ValueError("Invalid sent encoder name!")
 
     name_key = "t5"
 
     RESULTS_DIR = f"{config.ROOT_PATH}/results_" + name_key
-    # MODEL_SAVE_PATH = RESULTS_DIR + "/models"
+    MODEL_SAVE_PATH = RESULTS_DIR + "/models"
     RESULTS_SAVE_PATH = RESULTS_DIR
     os.makedirs(RESULTS_SAVE_PATH, exist_ok=True)
-    # os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
+    os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 
+    # Hyperparameters
     kwargs = {
         "embed_dim": embed_dim,
         "sent_encoder": sent_embedding,
@@ -125,25 +105,23 @@ def run_bigram_coherence(args):
     }
 
     logging.info("Training BigramCoherence model...")
+    if PRETRAINED_MODEL:
+        model = torch.load(f"{MODEL_SAVE_PATH}/bigram_coherence_model.pt")
+    else:
+        model = BigramCoherence(**kwargs)
+        model.init()
+        best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
+        torch.save(model, f"{MODEL_SAVE_PATH}/bigram_coherence_model.pt")
 
-    model = BigramCoherence(**kwargs)
-    model.init()
-    best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
     model.load_best_state()
-    torch.save(
-        model,
-        f"data/{name_key}-{valid_acc:.4f}.pt",
-    )
 
-    print_current_time()
-    print("Results for discrimination:")
-    dis_acc = model.evaluate_dis(test_dataloader, test_df)
-    print("Test Acc:", dis_acc)
+    logging.info("Results for discrimination:")
+    dis_acc, _ = model.evaluate_dis(test_dataloader, test_df)
+    logging.info("Discr Test Acc:", dis_acc)
 
-    print_current_time()
-    print("Results for insertion:")
-    ins_acc = model.evaluate_ins(test_dataloader, test_df)
-    print("Test Acc:", ins_acc)
+    logging.info("Results for insertion:")
+    ins_acc, _ = model.evaluate_ins(test_dataloader, test_df)
+    logging.info("Ins Test Acc:", ins_acc)
 
     # Save results
     results_path = os.path.join(
@@ -154,7 +132,6 @@ def run_bigram_coherence(args):
         "hparams": kwargs["hparams"],
         "discrimination": dis_acc,
         "insertion": ins_acc,
-        # "dataset": "wiki_bigram_easy",
     }
 
     with open(results_path + ".json", "w") as f:

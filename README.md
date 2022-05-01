@@ -1,87 +1,26 @@
-# Cross-Domain Coherence Modeling 
+# Dataset
 
-A Cross-Domain Transferable Neural Coherence Model
+- [[Link]](https://iiitaphyd-my.sharepoint.com/:u:/g/personal/sarthak_agrawal_research_iiit_ac_in/Ea3Se4CFeVdMnATyIwQiufcB8tUgsj2Bj29FStIUiOjPaw?e=wLMfwK) to download the dataset.
+- Name of dataset is `wsj_bigram`
 
-Paper published in ACL 2019: [arxiv.org/abs/1905.11912](https://arxiv.org/abs/1905.11912)
-
-This implementation is based on PyTorch 0.4.1.
-
-### Dataset
-
-To download the dataset:
-
-```
-python prepare_data.py
-```
-
-which includes WikiCoherence dataset we construct, 300-dim GloVe embeddings and pre-trained Infersent model.
-
-For WikiCoherence, it contains:
-
-- 7 categories under **Person**
-    - Artist
-    - Athlete
-    - Politician
-    - Writer
-    - MilitaryPerson
-    - OfficeHolder
-    - Scientist
-- 3 categories from different irrelevant domains:
-    - Plant
-    - EducationalInstitution
-    - CelestialBody
-- parsed\_wsj: original split for Wall Street Journal (WSJ)
-- parsed\_random: randomly split all paragraphs of the seven categories under **Person** into training part and testing part
-
-Check `config.py` for the data\_name for each setting.
-
-### Preprocessing
+# Preprocessing
 
 Premute the original documents or paragraphs to obtain the negative samples for evaluation:
 
 ```
-python preprocess.py --data_name <data_name>
+python preprocess.py
 ```
-
-### LM Pre-training
-
-Train the LM with the following command:
-
-```
-python train_lm.py --data_name <data_name>
-python train_lm.py --data_name <data_name> --reverse
-```
-
-The pre-trained models will be saved in `./checkpoint`.
 
 ### Training and Evaluation
 
-To evaluate our proposed models:
+To train and evaluate a model, run
 
 ```
-python run_bigram_coherence.py --data_name <data_name> --sent_encoder <sent_encoder> [--bidirectional]
+python run_model.py --sent_encoder <sent_encoder>
 ```
 
-where `sent_encoder` can be average\_glove, infersent or lm\_hidden.
+where `sent_encoder` can be "average_glove" or "sbert" (sbert by default).
 
-```
-python eval.py --data_name <data_name> --sent_encoder <sent_encoder> [--bidirectional]
-```
+# Checkpoints
 
-Run the above script will run the experiment multiple times and report the mean and std statistics.
-The log will be saved in `./log`.
-
-### Cite
-
-If you found this codebase or our work useful, please cite:
-
-```
-@InProceedings{xu2019cross,
-    author = {Xu, Peng and Saghir, Hamidreza and Kang, Jin Sung and Long, Teng and Bose, Avishek Joey and Cao, Yanshuai and Cheung, Jackie Chi Kit},
-    title = {A Cross-Domain Transferable Neural Coherence Model}
-    booktitle = {The 57th Annual Meeting of the Association for Computational Linguistics (ACL 2019)},
-    month = {July},
-    year = {2019},
-    publisher = {ACL}
-}
-```
+[[Link]](https://iiitaphyd-my.sharepoint.com/:u:/g/personal/sarthak_agrawal_research_iiit_ac_in/EYPh9CDmi3NLsJzd7MvXPBEBzT18RiZE015cRdQLYfDSrg?e=WobcjH) for checkpoints of the trained baseline models.

@@ -1,16 +1,11 @@
-from traceback import print_tb
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from .gan_models import MLP_Discriminator
+from discriminator_models import MLP_Discriminator
 import numpy as np
 import pickle
-from datetime import datetime
-from utils.np_utils import generate_random_pmatrices
 from tqdm import tqdm
-import utils.lm_utils as utils
 
 
 class MarginRankingLoss(nn.Module):
@@ -135,7 +130,6 @@ class BigramCoherence:
 
                 if self.loss_name == "margin":
                     loss = self.loss_fn(pos_scores, neg_scores)
-
                 elif self.loss_name == "log":
                     loss = self.loss_fn(-pos_scores, torch.ones_like(pos_scores))
                     loss += self.loss_fn(-neg_scores, torch.zeros_like(neg_scores))

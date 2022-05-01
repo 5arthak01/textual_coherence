@@ -124,15 +124,6 @@ def load_wsj_file_list(data_path):
     return file_list
 
 
-def load_wiki_file_list(data_path, dir_list):
-    file_list = []
-    for dirname in os.listdir(data_path):
-        if dirname in dir_list:
-            subdirpath = os.path.join(data_path, dirname)
-            file_list.append(os.path.join(subdirpath, "extracted_paras.txt"))
-    return file_list
-
-
 def load_file_list(data_name, if_sample):
     if data_name in ["wsj", "wsj_bigram", "wsj_trigram"]:
         if if_sample:
@@ -250,54 +241,6 @@ def get_sbert(data_name, if_sample=False, return_model=False):
         return embed_dict
 
 
-def get_infersent(data_name, on_gpu=True, if_sample=False, return_model=False):
-    logging.info("Start parsing...")
-    file_list = load_file_list(data_name, if_sample)
-
-    sentences = []
-    for file_path in file_list:
-        with open(file_path) as f:
-            for line in f:
-                line = line.strip()
-                if (line != "<para_break>") and (line != ""):
-                    sentences.append(line)
-    logging.info("%d sentences in total." % len(sentences))
-
-    logging.info("Loading infersent models...")
-    params = {
-        "bsize": 64,
-        "word_emb_dim": 300,
-        "enc_lstm_dim": 2048,
-        "pool_type": "max",
-        "dpout_model": 0.0,
-        "version": 1,
-    }
-    model = InferSent(params)
-    model.load_state_dict(torch.load(config.INFERSENT_MODEL))
-    model.set_w2v_path(config.WORD_EMBEDDING)
-    vocab_size = 10000 if if_sample else 2196017
-    model.build_vocab_k_words(K=vocab_size)
-    if on_gpu:
-        model.cuda()
-
-    logging.info("Encoding sentences...")
-    embeddings = model.encode(
-        sentences, 128, config.MAX_SENT_LENGTH, tokenize=False, verbose=True
-    )
-    logging.info("number of sentences encoded: %d" % len(embeddings))
-
-    assert len(sentences) == len(embeddings), "Lengths don't match!"
-    embed_dict = dict(zip(sentences, embeddings))
-    np.random.seed(0)
-    embed_dict["<SOA>"] = np.random.uniform(size=4096).astype(np.float32)
-    embed_dict["<EOA>"] = np.random.uniform(size=4096).astype(np.float32)
-
-    if return_model:
-        return embed_dict, model
-    else:
-        return embed_dict
-
-
 def get_average_glove(data_name, if_sample=False):
     logging.info("Start parsing...")
     file_list = load_file_list(data_name, if_sample)
@@ -332,129 +275,6 @@ def get_average_glove(data_name, if_sample=False):
     np.random.seed(0)
     embed_dict["<SOA>"] = np.random.uniform(size=300).astype(np.float32)
     embed_dict["<EOA>"] = np.random.uniform(size=300).astype(np.float32)
-    return embed_dict
-
-
-def get_lm_hidden(data_name, lm_name, corpus):
-    logging.info("Start parsing...")
-    file_list = load_file_list(data_name, False)
-
-    sentences = []
-    for file_path in file_list:
-        with open(file_path) as f:
-            for line in f:
-                line = line.strip()
-                if (line != "<para_break>") and (line != ""):
-                    sentences.append(line)
-    logging.info("%d sentences in total." % len(sentences))
-
-    with open(
-        os.path.join(config.CHECKPOINT_PATH, lm_name + "_forward.pkl"), "rb"
-    ) as f:
-        hparams = pickle.load(f)
-
-    kwargs = {
-        "vocab_size": corpus.glove_embed.shape[0],
-        "embed_dim": corpus.glove_embed.shape[1],
-        "corpus": corpus,
-        "hparams": hparams,
-    }
-
-    forward_lm = LanguageModel(**kwargs)
-    forward_lm.load(os.path.join(config.CHECKPOINT_PATH, lm_name + "_forward.pt"))
-    forward_lm = forward_lm.lm
-    forward_lm.eval()
-
-    backward_lm = LanguageModel(**kwargs)
-    backward_lm.load(os.path.join(config.CHECKPOINT_PATH, lm_name + "_backward.pt"))
-    backward_lm = backward_lm.lm
-    backward_lm.eval()
-
-    embed_dict = {}
-    ini_hidden = forward_lm.init_hidden(1)
-    for sent in tqdm(sentences):
-        fs = [corpus.vocab[w] for w in ["<eos>"] + sent.split() + ["<eos>"]]
-        fs = torch.LongTensor(fs).unsqueeze(1)
-        fs = fs.to("cuda")
-        fout = forward_lm.encode(fs, ini_hidden)
-        fout = torch.max(fout, 0)[0].squeeze().data.cpu().numpy().astype(np.float32)
-
-        bs = [corpus.vocab[w] for w in ["<eos>"] + sent.split()[::-1] + ["<eos>"]]
-        bs = torch.LongTensor(bs).unsqueeze(1)
-        bs = bs.to("cuda")
-        bout = backward_lm.encode(bs, ini_hidden)
-        bout = torch.max(bout, 0)[0].squeeze().data.cpu().numpy().astype(np.float32)
-
-        embed_dict[sent] = np.hstack((fout, bout))
-    np.random.seed(0)
-    embed_dict["<SOA>"] = np.random.uniform(size=2048).astype(np.float32)
-    embed_dict["<EOA>"] = np.random.uniform(size=2048).astype(np.float32)
-    return embed_dict
-
-
-def get_s2s_hidden(data_name, model_name, corpus):
-    logging.info("Start parsing...")
-    file_list = load_file_list(data_name, False)
-
-    sentences = []
-    for file_path in file_list:
-        with open(file_path) as f:
-            for line in f:
-                line = line.strip()
-                if (line != "<para_break>") and (line != ""):
-                    sentences.append(line)
-    logging.info("%d sentences in total." % len(sentences))
-
-    with open(
-        os.path.join(config.CHECKPOINT_PATH, model_name + "_forward.pkl"), "rb"
-    ) as f:
-        hparams = pickle.load(f)
-
-    kwargs = {
-        "vocab_size": corpus.glove_embed.shape[0],
-        "embed_dim": corpus.glove_embed.shape[1],
-        "corpus": corpus,
-        "hparams": hparams,
-    }
-
-    forward_model = Seq2SeqModel(**kwargs)
-    forward_model.load(os.path.join(config.CHECKPOINT_PATH, model_name + "_forward.pt"))
-    forward_model = forward_model.model
-    forward_model.eval()
-
-    backward_model = Seq2SeqModel(**kwargs)
-    backward_model.load(
-        os.path.join(config.CHECKPOINT_PATH, model_name + "_backward.pt")
-    )
-    backward_model = backward_model.model
-    backward_model.eval()
-
-    embed_dict = {}
-    for sent in tqdm(sentences):
-        fs = [corpus.vocab[w] for w in sent.split() + ["<eos>"]]
-        # fs_len = torch.LongTensor([len(fs)])
-        # fs_len = fs_len.to('cuda')
-        fs = torch.LongTensor(fs).unsqueeze(0)
-        fs = fs.to("cuda")
-        # fout = forward_model.encoding(fs, fs_len)
-        fout = forward_model.encode(fs)
-        # fout = fout.squeeze().data.cpu().numpy().astype(np.float32)
-        fout = torch.max(fout, 1)[0].squeeze().data.cpu().numpy().astype(np.float32)
-
-        bs = [corpus.vocab[w] for w in sent.split()[::-1] + ["<eos>"]]
-        # bs_len = torch.LongTensor([len(bs)])
-        # bs_len = bs_len.to('cuda')
-        bs = torch.LongTensor(bs).unsqueeze(0)
-        bs = bs.to("cuda")
-        # bout = backward_model.encoding(bs, bs_len)
-        bout = backward_model.encode(bs)
-        # bout = bout.squeeze().data.cpu().numpy().astype(np.float32)
-        bout = torch.max(bout, 1)[0].squeeze().data.cpu().numpy().astype(np.float32)
-
-        embed_dict[sent] = np.hstack((fout, bout))
-    np.random.seed(0)
-    embed_dict["<SOA>"] = np.random.uniform(size=2048).astype(np.float32)
-    embed_dict["<EOA>"] = np.random.uniform(size=2048).astype(np.float32)
     return embed_dict
 
 
