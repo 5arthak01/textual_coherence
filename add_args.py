@@ -36,7 +36,7 @@ def add_bigram_args(parser):
     parser.add_argument("--embed_dim", type=int, default=100, help="embedi_dim")
     parser.add_argument("--dpout_model", type=float, default=0.0, help="dpout_model")
     parser.add_argument(
-        "--sent_encoder", type=str, default="average_glove", help="sent_encoder"
+        "--sent_encoder", type=str, default="sbert", help="sent_encoder"
     )
     parser.add_argument(
         "--bidirectional", default=False, action="store_true", help="bidirectional"
