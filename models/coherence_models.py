@@ -74,16 +74,17 @@ class BigramCoherence:
         try:
             data = Variable(torch.from_numpy(data))
         except:
-            # debug
-            print("\n\n")
-            print(type(data))
-            print(data.shape)
-            print(set([type(x) for x in data]))
-            # print(data[0].shape)
-            print(data)
-            print("\n\n")
-
-            raise
+            # # debug
+            # print("\n\n")
+            # print(type(data))
+            # print(data.shape)
+            # print(set([type(x) for x in data]))
+            # # print(data[0].shape)
+            # print(data)
+            # print("\n\n")
+            # raise
+            data[data == None] = np.array()
+            data = Variable(torch.from_numpy(data))
         return data.cuda() if self.use_cuda else data
 
     def encode(self, sentences):
