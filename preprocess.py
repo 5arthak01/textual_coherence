@@ -15,6 +15,7 @@ import itertools
 import pickle
 from tqdm import tqdm
 import argparse
+from transformers import T5Model, T5Tokenizer
 
 
 def permute_articles(cliques, num_perm):
@@ -153,6 +154,43 @@ def load_file_list(data_name, if_sample):
         return load_wiki_file_list(config.WIKI_DATA_PATH, dir_list)
     else:
         raise ValueError("Invalid data name!")
+
+
+def get_t5(data_name, if_sample=False):
+    logging.info("Start parsing...")
+    file_list = load_file_list(data_name, if_sample)
+
+    sentences = []
+    for file_path in file_list:
+        with open(file_path) as f:
+            for line in f:
+                line = line.strip()
+                if (line != "<para_break>") and (line != ""):
+                    sentences.append(line)
+    logging.info("%d sentences in total." % len(sentences))
+
+    model = T5Model.from_pretrained("t5-small")
+    tok = T5Tokenizer.from_pretrained("t5-small")
+
+    enc = tok(
+        sentences, return_tensors="pt", truncation=True, padding=True, max_length=512
+    )
+
+    # forward pass through encoder only
+    output = model.encoder(
+        input_ids=enc["input_ids"],
+        attention_mask=enc["attention_mask"],
+        return_dict=True,
+    )
+    # get the final hidden states
+    embeddings = output.last_hidden_state
+
+    embed_dict = dict(zip(sentences, embeddings))
+    np.random.seed(0)
+    embed_dict["<SOA>"] = np.random.uniform(size=512).astype(np.float32)
+    embed_dict["<EOA>"] = np.random.uniform(size=512).astype(np.float32)
+
+    return embed_dict
 
 
 def get_sbert(data_name, if_sample=False, return_model=False):

@@ -5,6 +5,7 @@ from preprocess import (
     get_average_glove,
     save_eval_perm,
     get_lm_hidden,
+    get_t5,
 )
 from preprocess import get_s2s_hidden
 from utils.data_utils import DataSet
@@ -81,6 +82,9 @@ def run_bigram_coherence(args):
             with open("./data/glove.pkl", "rb") as f:
                 sent_embedding = pickle.load(f)
         embed_dim = 300
+    elif args.sent_encoder == "t5":
+        sent_embedding = get_t5(args.data_name, if_sample=args.test)
+        embed_dim = 512
     elif args.sent_encoder == "lm_hidden":
         corpus = Corpus(train_dataset.file_list, test_dataset.file_list)
         sent_embedding = get_lm_hidden(args.data_name, "lm_" + args.data_name, corpus)
@@ -92,7 +96,7 @@ def run_bigram_coherence(args):
     else:
         raise ValueError("Invalid sent encoder name!")
 
-    name_key = "wiki_a"
+    name_key = "t5"
 
     RESULTS_DIR = f"{config.ROOT_PATH}/results_" + name_key
     # MODEL_SAVE_PATH = RESULTS_DIR + "/models"
@@ -107,10 +111,10 @@ def run_bigram_coherence(args):
             "loss": "margin",
             "input_dropout": 0.5,
             "hidden_state": 500,
-            "hidden_layers": 2,
+            "hidden_layers": 1,
             "hidden_dropout": 0.3,
             "num_epochs": 50,
-            "margin": 6.0,
+            "margin": 5.0,
             "lr": 0.001,
             "l2_reg_lambda": 0.0,
             "use_bn": False,
@@ -126,31 +130,31 @@ def run_bigram_coherence(args):
     model.init()
     best_step, valid_acc = model.fit(train_dataloader, valid_dataloader, valid_df)
     model.load_best_state()
-    # torch.save(
-    #     model,
-    #     MODEL_SAVE_PATH + f"{i}-{scorer_name(scorer)}-{encoder}-{valid_acc:.4f}.pt",
-    # )
+    torch.save(
+        model,
+        f"data/{name_key}-{valid_acc:.4f}.pt",
+    )
 
     print_current_time()
     print("Results for discrimination:")
     dis_acc = model.evaluate_dis(test_dataloader, test_df)
     print("Test Acc:", dis_acc)
 
-    # print_current_time()
-    # print("Results for insertion:")
-    # ins_acc = model.evaluate_ins(test_dataloader, test_df)
-    # print("Test Acc:", ins_acc)
+    print_current_time()
+    print("Results for insertion:")
+    ins_acc = model.evaluate_ins(test_dataloader, test_df)
+    print("Test Acc:", ins_acc)
 
     # Save results
     results_path = os.path.join(
         RESULTS_SAVE_PATH,
-        f"wiki_a-{valid_acc:.4f}",
+        f"{name_key}-{valid_acc:.4f}",
     )
     results = {
         "hparams": kwargs["hparams"],
         "discrimination": dis_acc,
-        # "insertion": ins_acc,
-        "dataset": "wiki_bigram_easy",
+        "insertion": ins_acc,
+        # "dataset": "wiki_bigram_easy",
     }
 
     with open(results_path + ".json", "w") as f:
