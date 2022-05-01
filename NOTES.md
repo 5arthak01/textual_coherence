@@ -10,6 +10,15 @@ After "Training BigramCoherence model..."
 
 # Analysis of Hyperparameter tuning with discrimination validation
 
+# Comparison of baseline results
+
+| BASELINE       | Discrimination      | Insertion           |
+| -------------- | ------------------- | ------------------- |
+| AVG_GLOVE      | 0.9253795066413663  | 0.2984713791414052  |
+| SIGMOID        | 0.8039373814041746  | 0.2146964623152086  |
+| TANH AVG_GLOVE | 0.10488614800759014 | 0.7206061213667566  |
+| SBERT          | 0.9385199240986717  | 0.33034726781926527 |
+
 ### Hyparameters
 
 - input_dropout: [0.5, 0.6, 0.7]
