@@ -78,9 +78,9 @@ class BigramCoherence:
             print("\n\n")
             print(type(data))
             print(data.shape)
-            print(type(data[0]))
-            print(data[0].shape)
-            print(data[0])
+            print(set([type(x) for x in data]))
+            # print(data[0].shape)
+            print(data)
             print("\n\n")
 
             raise
