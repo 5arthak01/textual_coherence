@@ -10,5 +10,5 @@ cd
 source .bashrc
 cd ~/cross_domain_coherence
 conda activate pytorch
-python bert.py --sent_encoder sbert
+python models_experi.py
 
