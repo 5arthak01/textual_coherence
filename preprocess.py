@@ -4,16 +4,11 @@ import logging
 import config
 from utils.logging_utils import _set_basic_logging
 from utils.data_utils import DataSet
-from models.infersent_models import InferSent
 from sentence_transformers import SentenceTransformer
-from models.language_models import LanguageModel
-import torch
 import numpy as np
 import random
 import copy
 import itertools
-import pickle
-from tqdm import tqdm
 import argparse
 from transformers import T5Model, T5Tokenizer
 
@@ -58,32 +53,6 @@ def permute_articles_with_replacement(cliques, num_perm):
                 break
         permuted_articles.append(inner_perm)
     return permuted_articles
-
-
-def prep_wsj_lm_data(data_path):
-    train_list = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
-
-    valid_list = ["11", "12", "13"]
-
-    test_list = ["14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"]
-
-    datasets = [("train", train_list), ("valid", valid_list), ("test", test_list)]
-
-    for dname, dlist in datasets:
-        with open(os.path.join("./", dname + ".txt"), "w") as wr:
-            for dirname in os.listdir(data_path):
-
-                if dirname in dlist:
-                    print(dname, dirname)
-                    subdirpath = os.path.join(data_path, dirname)
-
-                    for filename in os.listdir(subdirpath):
-                        fname = os.path.join(subdirpath, filename)
-
-                        with open(fname) as fr:
-                            wr.write("<SOA>" + "\n")
-                            wr.write(fr.read().strip() + "\n")
-                            wr.write("<EOA>" + "\n")
 
 
 def load_wsj_file_list(data_path):

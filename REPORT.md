@@ -1,10 +1,49 @@
 # Contributions
 
-- Sarthak Agrawal:
-- Sarthak Mahajan: Tried using roberta and T5 as sentence encoders. T5 is a generative encoder,and the paper says, "... generative coherence model can be leveraged by our model to benefit from the advantages of both generative and discriminative training". Also did literature review to see the various coherence scoring methods used, that can be employed for our model.
-- Aryan Kharbanda: Read upon Sentence Encoders and tried implementing Neural Sentence Encoder.
+- Sarthak Agrawal: Ran all the experiments. Includes the baseline models, hyperparameter tuning with different tasks in validation, experiments with different sentence encoders, and the final results.
+- Aryan Kharbanda: Reviewed Literature on Sentence Encoders and tried implementing a Neural Sentence Encoder.
+- Sarthak Mahajan: Tried using roberta and T5 as sentence encoders. T5 is a generative encoder,and the paper says, "... generative coherence model can be leveraged by our model to benefit from the advantages of both generative and discriminative training." Did literature review to see the various coherence scoring methods.
 
-# Comparison of baseline results
+# Literature Review
+
+**Main**
+
+- [A Cross-Domain Transferable Neural Coherence Model](https://arxiv.org/abs/1905.11912)
+- [Neural Net Models for Open-Domain Discourse Coherence](https://arxiv.org/abs/1606.01545)
+
+**Others** (mainly for scoring methods)
+
+\*\*: Uses sigmoid for scoring
+
+- https://aclanthology.org/D14-1218.pdf
+- https://aclanthology.org/P17-1121/
+- https://arxiv.org/abs/1909.00349
+- https://aclanthology.org/D18-1464/ \*\*
+- https://aclanthology.org/2020.coling-main.194/
+- https://ojs.aaai.org/index.php/AAAI/article/view/12045 \*\*
+- https://aclanthology.org/W16-3407.pdf
+- https://link.springer.com/chapter/10.1007/978-3-030-01716-3_32 \*\*
+- https://aclanthology.org/P11-1100.pdf
+- https://aclanthology.org/C14-1089.pdf
+- https://arxiv.org/abs/2005.10389
+- https://aclanthology.org/P08-2011.pdf
+- https://arxiv.org/abs/1804.06898 \*\*
+- https://dl.acm.org/doi/abs/10.1145/3132847.3133047
+
+# Evaluation
+
+The following methods are known of
+
+- Discrimination
+- Insertion
+- Paragraph Reconstruction
+- Readability Assessment
+
+The first two are used.
+
+# Experiments
+
+## Comparison of baseline results
 
 - Results with the recommended hyperparameters
 
@@ -14,6 +53,17 @@
 | Sigmoid         | Avg_Glove | 0.80393        | 0.21469   |
 | TanH            | Avg_Glove | 0.10488        | 0.72060   |
 | None            | SBERT     | 0.93851        | 0.33034   |
+
+```python
+"hparams": {
+    "input_dropout": 0.6,
+    "hidden_layers": 1,
+    "hidden_dropout": 0.3,
+    "margin": 5.0,
+    "weight_decay": 0.0,
+    "dpout_model": 0.0
+}
+```
 
 # Analysis of Hyperparameter tuning
 
@@ -72,22 +122,13 @@
 - Same model performs best in both tasks
 
 ```python
-{
-    "hparams": {
-        "loss": "margin",
-        "input_dropout": 0.5,
-        "hidden_state": 500,
-        "hidden_layers": 2,
-        "hidden_dropout": 0.3,
-        "num_epochs": 50,
-        "margin": 6.0,
-        "lr": 0.001,
-        "weight_decay": 0.0,
-        "use_bn": False,
-        "task": "discrimination",
-        "bidirectional": False,
-        "dpout_model": 0.0
-    },
+"hparams": {
+    "input_dropout": 0.5,
+    "hidden_layers": 2,
+    "hidden_dropout": 0.3,
+    "margin": 6.0,
+    "weight_decay": 0.0,
+    "dpout_model": 0.0
 }
 ```
 
@@ -135,22 +176,13 @@
 - Same model performs best in both tasks
 
 ```python
-{
-    "hparams": {
-        "loss": "margin",
-        "input_dropout": 0.5,
-        "hidden_state": 500,
-        "hidden_layers": 1,
-        "hidden_dropout": 0.4,
-        "num_epochs": 50,
-        "margin": 6.0,
-        "lr": 0.001,
-        "l2_reg_lambda": 0.0,
-        "use_bn": False,
-        "task": "insertion",
-        "bidirectional": False,
-        "dpout_model": 0.05
-    }
+"hparams": {
+    "input_dropout": 0.5,
+    "hidden_layers": 1,
+    "hidden_dropout": 0.4,
+    "margin": 6.0,
+    "weight_decay": 0.0,
+    "dpout_model": 0.05
 }
 ```
 
@@ -167,7 +199,7 @@
 | discrimination  | False         | sigmoid         | average_glove | 0.6148     | **0.4915** | 0.55315    |
 | discrimination  | False         | sigmoid         | sbert         | 0.2711     | 0.3196     | 0.29535    |
 | discrimination  | True          | None            | average_glove | 0.9259     | 0.3091     | 0.61749    |
-| discrimination  | True          | None            | sbert         | **0.9268** | 0.313      | 0.6199     |
+| discrimination  | True          | None            | sbert         | **0.9268** | 0.313      | 0.**6199** |
 | discrimination  | True          | tanh            | average_glove | 0.0001     | 1.0        | 0.50005    |
 | discrimination  | True          | tanh            | sbert         | 0.807      | 0.3134     | 0.5602     |
 | discrimination  | True          | sigmoid         | average_glove | 0.713      | 0.3809     | 0.54695    |
