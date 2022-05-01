@@ -1,3 +1,4 @@
+from traceback import print_tb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -70,7 +71,19 @@ class BigramCoherence:
 
     def _variable(self, data):
         data = np.array(data)
-        data = Variable(torch.from_numpy(data))
+        try:
+            data = Variable(torch.from_numpy(data))
+        except:
+            # debug
+            print("\n\n")
+            print(type(data))
+            print(data.shape)
+            print(type(data[0]))
+            print(data[0].shape)
+            print(data[0])
+            print("\n\n")
+
+            raise
         return data.cuda() if self.use_cuda else data
 
     def encode(self, sentences):

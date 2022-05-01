@@ -55,6 +55,8 @@ def run_bigram_coherence(args):
     test_dataloader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
     test_df = dataset.load_test_perm()
 
+    # print(train_df.head())
+
     logging.info("Loading sent embedding...")
 
     # if args.sent_encoder == "infersent":
